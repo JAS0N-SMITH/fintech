@@ -1,0 +1,12 @@
+<div class="flex min-h-screen items-center justify-center bg-gray-50">
+  <div class="text-center">
+    <h1 class="mb-2 text-4xl font-bold text-gray-900">{{ title() }}</h1>
+    <p class="mb-6 text-gray-600">Track your portfolio, watchlists, and real-time market data</p>
+    <p-button label="Get Started" icon="pi pi-arrow-right" iconPos="right" />
+    @if (ready()) {
+      <p class="mt-4 text-sm text-green-600">Scaffold complete — Angular + PrimeNG + Tailwind</p>
+    }
+  </div>
+</div>
+
+<router-outlet />

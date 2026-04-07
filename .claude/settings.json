@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(ng version:*)",
+      "Bash(brew --version)",
+      "Bash(go version:*)",
+      "Bash(go env:*)",
+      "Bash(golangci-lint --version)",
+      "Bash(goose --version)",
+      "Bash(ng new:*)",
+      "Bash(npm view:*)",
+      "Bash(brew install:*)",
+      "Bash(/opt/homebrew/bin/go version:*)",
+      "Bash(/opt/homebrew/bin/go env:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
+    ]
+  }
+}
