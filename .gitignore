@@ -1,0 +1,46 @@
+# Dependencies
+frontend/node_modules/
+frontend/.angular/
+
+# Build output
+frontend/dist/
+backend/bin/
+backend/tmp/
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+frontend/.env
+backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+frontend/coverage/
+frontend/.vitest/
+backend/coverage.out
+
+# Logs
+*.log
+npm-debug.log*
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Angular
+frontend/.sass-cache/
+frontend/connect.lock
+frontend/typings/
