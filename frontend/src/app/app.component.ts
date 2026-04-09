@@ -1,16 +1,15 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Button } from 'primeng/button';
+import { Toast } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Button],
+  imports: [RouterOutlet, Toast],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  template: `
+    <p-toast />
+    <router-outlet />
+  `,
 })
-export class App {
-  protected readonly title = signal('Portfolio Dashboard');
-  protected readonly ready = signal(true);
-}
+export class App {}

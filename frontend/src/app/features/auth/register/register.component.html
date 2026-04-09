@@ -1,0 +1,106 @@
+<div class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+  <div class="w-full max-w-sm">
+
+    @if (registered()) {
+
+      <div class="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
+        <span class="pi pi-envelope text-3xl text-green-600" aria-hidden="true"></span>
+        <h2 class="mt-3 text-lg font-semibold text-gray-900">Check your email</h2>
+        <p class="mt-1 text-sm text-gray-600">
+          We sent a confirmation link to your inbox. Click it to activate your account.
+        </p>
+        <a routerLink="/auth/login" class="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline">
+          Back to sign in
+        </a>
+      </div>
+
+    } @else {
+
+      <div class="mb-8 text-center">
+        <h1 class="text-2xl font-bold text-gray-900">Create account</h1>
+        <p class="mt-1 text-sm text-gray-500">Start tracking your portfolio</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
+
+        <div class="flex flex-col gap-1">
+          <label for="email" class="text-sm font-medium text-gray-700">Email</label>
+          <input
+            pInputText
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            aria-required="true"
+            [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+            class="w-full"
+          />
+          @if (form.controls.email.invalid && form.controls.email.touched) {
+            <span class="text-xs text-red-600" role="alert">
+              @if (form.controls.email.hasError('required')) { Email is required. }
+              @else { Enter a valid email address. }
+            </span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+          <p-password
+            inputId="password"
+            formControlName="password"
+            placeholder="At least 8 characters"
+            [toggleMask]="true"
+            autocomplete="new-password"
+            aria-required="true"
+            [inputStyle]="{ width: '100%' }"
+            styleClass="w-full"
+          />
+          @if (form.controls.password.invalid && form.controls.password.touched) {
+            <span class="text-xs text-red-600" role="alert">
+              @if (form.controls.password.hasError('required')) { Password is required. }
+              @else { Password must be at least 8 characters. }
+            </span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="confirmPassword" class="text-sm font-medium text-gray-700">Confirm password</label>
+          <p-password
+            inputId="confirmPassword"
+            formControlName="confirmPassword"
+            placeholder="Repeat your password"
+            [feedback]="false"
+            [toggleMask]="true"
+            autocomplete="new-password"
+            aria-required="true"
+            [inputStyle]="{ width: '100%' }"
+            styleClass="w-full"
+          />
+          @if (form.hasError('passwordMismatch') && form.controls.confirmPassword.touched) {
+            <span class="text-xs text-red-600" role="alert">Passwords do not match.</span>
+          }
+        </div>
+
+        <p-button
+          type="submit"
+          label="Create account"
+          styleClass="w-full"
+          [loading]="isLoading()"
+          [disabled]="form.invalid"
+          aria-label="Create your account"
+        />
+
+      </form>
+
+      <p class="mt-6 text-center text-sm text-gray-500">
+        Already have an account?
+        <a routerLink="/auth/login" class="font-medium text-blue-600 hover:underline">
+          Sign in
+        </a>
+      </p>
+
+    }
+
+  </div>
+</div>

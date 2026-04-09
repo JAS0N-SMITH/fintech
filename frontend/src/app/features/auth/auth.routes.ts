@@ -1,4 +1,15 @@
 import { Routes } from '@angular/router';
 
-// Login and register components will be added in Phase 2.
-export const AUTH_ROUTES: Routes = [];
+export const AUTH_ROUTES: Routes = [
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'register',
+    loadComponent: () =>
+      import('./register/register.component').then((m) => m.RegisterComponent),
+  },
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+];
