@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/huchknows/fintech/backend/internal/config"
+	"github.com/huchknows/fintech/backend/internal/middleware"
 )
 
 func main() {
@@ -52,9 +53,23 @@ func main() {
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
-	v1.GET("/health", func(c *gin.Context) {
+
+	// Public routes — no auth required
+	public := v1.Group("/")
+	public.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Authenticated routes — valid Supabase JWT required
+	authed := v1.Group("/")
+	authed.Use(middleware.RequireAuth(cfg.SupabaseURL))
+	// authed.GET("/portfolios", ...) — added in Phase 3
+
+	// Admin routes — valid JWT + admin role required
+	admin := v1.Group("/admin")
+	admin.Use(middleware.RequireAuth(cfg.SupabaseURL), middleware.RequireRole("admin"))
+	// admin.GET("/users", ...) — added in Phase 5
+	_ = admin // suppress unused warning until handlers are added
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("starting server", "address", addr)

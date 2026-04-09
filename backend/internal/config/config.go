@@ -15,6 +15,7 @@ type Config struct {
 	Port        string
 	GinMode     string
 	DatabaseURL string
+	SupabaseURL string
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -39,10 +40,15 @@ func Load() (*Config, error) {
 		Port:        viper.GetString("PORT"),
 		GinMode:     viper.GetString("GIN_MODE"),
 		DatabaseURL: viper.GetString("DATABASE_URL"),
+		SupabaseURL: viper.GetString("SUPABASE_URL"),
 	}
 
 	if cfg.DatabaseURL == "" {
 		return cfg, fmt.Errorf("DATABASE_URL is not set")
+	}
+
+	if cfg.SupabaseURL == "" {
+		return cfg, fmt.Errorf("SUPABASE_URL is not set")
 	}
 
 	return cfg, nil
