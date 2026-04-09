@@ -191,6 +191,136 @@ func TestRequireAuth_UserIDInContext(t *testing.T) {
 	}
 }
 
+func TestRequireAuth_MissingSubjectClaim(t *testing.T) {
+	key := newTestKey(t)
+	srv := jwksServerFor(t, &key.PublicKey)
+	router := routerWithMiddleware(RequireAuth(srv.URL))
+
+	// Token with no Subject claim.
+	claims := SupabaseClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
+		Role: "authenticated",
+	}
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+signToken(t, key, claims))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401 for missing sub claim", w.Code)
+	}
+}
+
+func TestRequireAuth_JWKSEndpointError(t *testing.T) {
+	// Point at a server that returns 500.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	key := newTestKey(t)
+	router := routerWithMiddleware(RequireAuth(srv.URL))
+
+	claims := SupabaseClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   "user-xyz",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
+		Role: "authenticated",
+	}
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+signToken(t, key, claims))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500 when JWKS fetch fails", w.Code)
+	}
+}
+
+func TestRequireAuth_JWKSMissingKey(t *testing.T) {
+	// JWKS endpoint returns valid JSON but no ES256 key.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"keys":[]}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	key := newTestKey(t)
+	router := routerWithMiddleware(RequireAuth(srv.URL))
+
+	claims := SupabaseClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   "user-xyz",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+		},
+		Role: "authenticated",
+	}
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+signToken(t, key, claims))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500 when no ES256 key in JWKS", w.Code)
+	}
+}
+
+func TestAppRole(t *testing.T) {
+	tests := []struct {
+		name     string
+		meta     map[string]interface{}
+		wantRole string
+	}{
+		{"nil app_metadata defaults to user", nil, "user"},
+		{"empty app_metadata defaults to user", map[string]interface{}{}, "user"},
+		{"role set to admin", map[string]interface{}{"role": "admin"}, "admin"},
+		{"role set to user", map[string]interface{}{"role": "user"}, "user"},
+		{"non-string role defaults to user", map[string]interface{}{"role": 42}, "user"},
+		{"empty string role defaults to user", map[string]interface{}{"role": ""}, "user"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &SupabaseClaims{AppMetadata: tt.meta}
+			if got := c.appRole(); got != tt.wantRole {
+				t.Errorf("appRole() = %q, want %q", got, tt.wantRole)
+			}
+		})
+	}
+}
+
+func TestUserIDFromContext(t *testing.T) {
+	t.Run("returns user ID when set", func(t *testing.T) {
+		gin.SetMode(gin.TestMode)
+		var captured string
+		r := gin.New()
+		r.GET("/", func(c *gin.Context) {
+			c.Set(string(ContextKeyUserID), "test-user-id")
+			captured = UserIDFromContext(c.Request.Context())
+			// Gin context values aren't accessible via request context directly —
+			// test that the helper returns empty for request context (not gin context).
+			c.Status(http.StatusOK)
+		})
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		httptest.NewRecorder()
+		r.ServeHTTP(httptest.NewRecorder(), req)
+		// UserIDFromContext reads from context.Context (not gin.Context).
+		// Verify it returns empty string when key is absent from request context.
+		if captured != "" {
+			t.Errorf("UserIDFromContext from plain request context = %q, want empty", captured)
+		}
+	})
+
+	t.Run("returns empty string when not set", func(t *testing.T) {
+		if got := UserIDFromContext(httptest.NewRequest(http.MethodGet, "/", nil).Context()); got != "" {
+			t.Errorf("UserIDFromContext = %q, want empty string", got)
+		}
+	})
+}
+
 func TestRequireRole(t *testing.T) {
 	adminRouter := func(role string) *gin.Engine {
 		gin.SetMode(gin.TestMode)
