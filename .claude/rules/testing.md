@@ -3,7 +3,7 @@
 ## Strategy
 
 - **TDD (test first):** Authentication, financial calculations, transaction processing, data validation, RBAC enforcement
-- **Test-as-you-build:** UI components, layout, navigation, chart rendering
+- **Test-as-you-build:** UI components, layout, navigation, chart rendering and write tests for the current phase before moving on to the next phase
 - **Every feature must be testable.** If it can't be unit tested, add it to E2E coverage.
 - **Coverage targets:** 85% overall, 95%+ for auth/financial/transaction code. Use branch coverage for financial logic.
 
