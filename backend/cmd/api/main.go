@@ -12,7 +12,10 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/huchknows/fintech/backend/internal/config"
+	"github.com/huchknows/fintech/backend/internal/handler"
 	"github.com/huchknows/fintech/backend/internal/middleware"
+	"github.com/huchknows/fintech/backend/internal/repository"
+	"github.com/huchknows/fintech/backend/internal/service"
 )
 
 func main() {
@@ -42,6 +45,16 @@ func main() {
 	}
 	slog.Info("database connection established")
 
+	// Dependency injection — wire repositories → services → handlers.
+	portfolioRepo := repository.NewPortfolioRepository(pool)
+	transactionRepo := repository.NewTransactionRepository(pool)
+
+	portfolioSvc := service.NewPortfolioService(portfolioRepo)
+	transactionSvc := service.NewTransactionService(transactionRepo, portfolioRepo)
+
+	portfolioHandler := handler.NewPortfolioHandler(portfolioSvc)
+	transactionHandler := handler.NewTransactionHandler(transactionSvc)
+
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
 
@@ -59,7 +72,7 @@ func main() {
 	// API v1 routes
 	v1 := r.Group("/api/v1")
 
-	// Public routes — no auth required, IP-based rate limiting from global stack.
+	// Public routes — no auth, IP-based rate limiting from global stack.
 	public := v1.Group("/")
 	public.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -71,7 +84,8 @@ func main() {
 		middleware.RequireAuth(cfg.SupabaseURL),
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
-	// authed.GET("/portfolios", ...) — added in Phase 3
+	portfolioHandler.RegisterRoutes(authed)
+	transactionHandler.RegisterRoutes(authed)
 
 	// Admin routes — Auth + role enforcement + per-user rate limiting.
 	admin := v1.Group("/admin")
