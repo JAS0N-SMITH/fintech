@@ -43,14 +43,9 @@ export class PortfolioListComponent implements OnInit {
   protected readonly editTarget = signal<Portfolio | null>(null);
 
   ngOnInit(): void {
-    this.portfolioService.loadAll().subscribe({
-      error: () =>
-        this.messages.add({
-          severity: 'error',
-          summary: 'Load failed',
-          detail: 'Could not load portfolios. Please try again.',
-        }),
-    });
+    // Load portfolios silently; empty state template handles the no-portfolio case.
+    // Errors are logged to console for debugging, but don't disrupt the user experience.
+    this.portfolioService.loadAll().subscribe();
   }
 
   protected openCreateDialog(): void {
