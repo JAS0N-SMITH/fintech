@@ -38,14 +38,21 @@ export interface CreateTransactionInput {
 }
 
 /**
- * A current holding derived from transaction history.
+ * A current holding derived from transaction history, optionally enriched with
+ * live market data from TickerStateService (Phase 5).
  *
  * Never stored — always computed from transactions via deriveHoldings().
- * All numeric fields are string-encoded decimals for display precision.
+ * Core fields (quantity, avgCostBasis, totalCost) are string-encoded decimals.
+ * Market data fields are null until prices arrive from the WebSocket stream.
  */
 export interface Holding {
   symbol: string;
   quantity: string;
   avgCostBasis: string;
   totalCost: string;
+  // Market data fields — null until live prices are available.
+  currentPrice: number | null;
+  currentValue: string | null;    // quantity × currentPrice (to 2 decimal places)
+  gainLoss: string | null;        // currentValue - totalCost
+  gainLossPercent: number | null; // gainLoss / totalCost × 100
 }

@@ -60,6 +60,11 @@ export function deriveHoldings(transactions: Transaction[]): Holding[] {
       quantity: netQty.toFixed(6).replace(/\.?0+$/, ''),
       avgCostBasis: avgCostBasis.toFixed(2),
       totalCost: totalCost.toFixed(2),
+      // Market data fields are null until live prices arrive from TickerStateService.
+      currentPrice: null,
+      currentValue: null,
+      gainLoss: null,
+      gainLossPercent: null,
     });
   }
 
