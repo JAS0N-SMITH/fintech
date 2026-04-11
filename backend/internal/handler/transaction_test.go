@@ -47,7 +47,8 @@ func transactionRouter(svc *mockTransactionService, callerID string) *gin.Engine
 	})
 
 	h := NewTransactionHandler(svc)
-	h.RegisterRoutes(&r.RouterGroup)
+	portfolios := r.Group("/portfolios/:id")
+	h.RegisterRoutes(portfolios)
 	return r
 }
 

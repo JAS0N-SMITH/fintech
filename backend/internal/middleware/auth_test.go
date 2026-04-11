@@ -165,6 +165,93 @@ func TestRequireAuth(t *testing.T) {
 	}
 }
 
+func TestRequireAuth_QueryParameterToken(t *testing.T) {
+	key := newTestKey(t)
+	srv := jwksServerFor(t, &key.PublicKey)
+	router := routerWithMiddleware(RequireAuth(srv.URL))
+
+	validClaims := func(sub string) SupabaseClaims {
+		return SupabaseClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   sub,
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+			Role: "authenticated",
+		}
+	}
+
+	tests := []struct {
+		name       string
+		tokenQuery string
+		wantStatus int
+	}{
+		{
+			name:       "valid token in query parameter",
+			tokenQuery: signToken(t, key, validClaims("user-uuid-456")),
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "missing token in query parameter",
+			tokenQuery: "",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "invalid token in query parameter",
+			tokenQuery: "not.a.jwt",
+			wantStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := "/test"
+			if tt.tokenQuery != "" {
+				url += "?token=" + tt.tokenQuery
+			}
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
+func TestRequireAuth_HeaderPrecedenceOverQuery(t *testing.T) {
+	key := newTestKey(t)
+	srv := jwksServerFor(t, &key.PublicKey)
+	router := routerWithMiddleware(RequireAuth(srv.URL))
+
+	validClaims := func(sub string) SupabaseClaims {
+		return SupabaseClaims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   sub,
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+			Role: "authenticated",
+		}
+	}
+
+	headerToken := signToken(t, key, validClaims("user-from-header"))
+	queryToken := "invalid.token"
+
+	req := httptest.NewRequest(http.MethodGet, "/test?token="+queryToken, nil)
+	req.Header.Set("Authorization", "Bearer "+headerToken)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200 (header should take precedence)", w.Code)
+	}
+	if w.Body.String() != "user-from-header" {
+		t.Errorf("user_id = %q, want user-from-header", w.Body.String())
+	}
+}
+
 func TestRequireAuth_UserIDInContext(t *testing.T) {
 	key := newTestKey(t)
 	srv := jwksServerFor(t, &key.PublicKey)

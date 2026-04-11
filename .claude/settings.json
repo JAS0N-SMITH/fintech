@@ -21,7 +21,10 @@
       "Bash(ng test:*)",
       "Bash(ng build:*)",
       "Bash(go run:*)",
-      "Bash(npx ng:*)"
+      "Bash(npx ng:*)",
+      "Bash(make test:*)",
+      "Bash(grep -n \"RequestIDFromContext\\\\|RequestID\" /Users/huchknows/Documents/Github/fintech/backend/internal/middleware/*.go)",
+      "mcp__supabase__get_logs"
     ]
   }
 }

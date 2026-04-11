@@ -73,9 +73,9 @@ func RequireAuth(supabaseURL string) gin.HandlerFunc {
 	cache := &jwksCache{refreshTTL: time.Hour}
 
 	return func(c *gin.Context) {
-		token, err := extractBearerToken(c.GetHeader("Authorization"))
+		token, err := extractToken(c)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or malformed authorization header"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid token"})
 			return
 		}
 
@@ -131,6 +131,22 @@ func UserIDFromContext(ctx context.Context) string {
 		return id
 	}
 	return ""
+}
+
+// extractToken gets the JWT from either the Authorization header or query parameter.
+// Authorization header takes precedence. Query parameter is used for WebSocket upgrades.
+func extractToken(c *gin.Context) (string, error) {
+	// Try Authorization header first (REST requests).
+	if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+		return extractBearerToken(authHeader)
+	}
+
+	// Fall back to query parameter (WebSocket upgrades).
+	if token := c.Query("token"); token != "" {
+		return token, nil
+	}
+
+	return "", fmt.Errorf("no token provided")
 }
 
 // extractBearerToken parses "Bearer <token>" from an Authorization header.
