@@ -9,6 +9,8 @@ watchlists, and real-time market data.
 > see `docs/decisions/` for Architecture Decision Records and `docs/build-phases/`
 > for phase-by-phase build summaries.
 
+**License:** Apache 2.0 — see [LICENSE](./LICENSE)
+
 ---
 
 ## Tech Stack
