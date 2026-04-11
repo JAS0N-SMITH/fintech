@@ -1,0 +1,53 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+  <div class="flex flex-col gap-1">
+    <label for="pf-name" class="font-medium text-sm">Name <span class="text-red-500">*</span></label>
+    <input
+      pInputText
+      id="pf-name"
+      formControlName="name"
+      placeholder="e.g. Main Brokerage"
+      class="w-full"
+      [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+      aria-describedby="pf-name-error"
+    />
+    @if (form.controls.name.invalid && form.controls.name.touched) {
+      <small id="pf-name-error" class="text-red-500">
+        @if (form.controls.name.hasError('required')) { Name is required. }
+        @else if (form.controls.name.hasError('maxlength')) { Name must be 100 characters or fewer. }
+      </small>
+    }
+  </div>
+
+  <div class="flex flex-col gap-1">
+    <label for="pf-desc" class="font-medium text-sm">Description</label>
+    <textarea
+      pTextarea
+      id="pf-desc"
+      formControlName="description"
+      rows="3"
+      placeholder="Optional notes about this portfolio"
+      class="w-full"
+      [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
+      aria-describedby="pf-desc-error"
+    ></textarea>
+    @if (form.controls.description.hasError('maxlength') && form.controls.description.touched) {
+      <small id="pf-desc-error" class="text-red-500">Description must be 500 characters or fewer.</small>
+    }
+  </div>
+
+  <div class="flex justify-end gap-2 pt-2">
+    <p-button
+      type="button"
+      label="Cancel"
+      severity="secondary"
+      [text]="true"
+      (onClick)="onCancel()"
+    />
+    <p-button
+      type="submit"
+      [label]="isEditMode ? 'Save changes' : 'Create portfolio'"
+      [loading]="isSubmitting()"
+      [disabled]="form.invalid"
+    />
+  </div>
+</form>

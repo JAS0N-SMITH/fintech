@@ -1,0 +1,156 @@
+<div class="p-6 max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <p-button
+      icon="pi pi-arrow-left"
+      [text]="true"
+      severity="secondary"
+      (onClick)="goBack()"
+      aria-label="Back to portfolios"
+    />
+    <div class="flex-1">
+      @if (portfolioService.selectedPortfolio(); as p) {
+        <h1 class="text-2xl font-semibold">{{ p.name }}</h1>
+        @if (p.description) {
+          <p class="text-surface-500 text-sm mt-0.5">{{ p.description }}</p>
+        }
+      } @else {
+        <div class="h-7 w-48 bg-surface-100 rounded animate-pulse"></div>
+      }
+    </div>
+    <p-button
+      label="Add transaction"
+      icon="pi pi-plus"
+      (onClick)="openTxDialog()"
+      aria-label="Record a new transaction"
+    />
+  </div>
+
+  <!-- Tabs: Holdings | Transactions -->
+  <p-tabs value="holdings">
+    <p-tablist>
+      <p-tab value="holdings">
+        <i class="pi pi-chart-bar mr-2"></i>Holdings
+      </p-tab>
+      <p-tab value="transactions">
+        <i class="pi pi-list mr-2"></i>Transactions
+        @if (transactionService.transactions().length > 0) {
+          <span class="ml-2 text-xs bg-surface-200 text-surface-600 rounded-full px-2 py-0.5">
+            {{ transactionService.transactions().length }}
+          </span>
+        }
+      </p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <!-- Holdings panel -->
+      <p-tabpanel value="holdings">
+        <div class="pt-4">
+          <app-holdings-table [holdings]="transactionService.holdings()" />
+        </div>
+      </p-tabpanel>
+
+      <!-- Transactions panel -->
+      <p-tabpanel value="transactions">
+        <div class="pt-4">
+          <div class="flex justify-between items-center mb-3">
+            <p-select
+              [options]="typeFilterOptions"
+              [ngModel]="typeFilterValue()"
+              (ngModelChange)="typeFilterValue.set($event)"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Filter by type"
+              [showClear]="true"
+              styleClass="w-48"
+              aria-label="Filter transactions by type"
+            />
+          </div>
+
+          <p-table
+            [value]="filteredTransactions"
+            [loading]="transactionService.loading()"
+            sortField="transaction_date"
+            [sortOrder]="-1"
+            styleClass="p-datatable-sm"
+            aria-label="Transactions table"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="transaction_date">Date <p-sortIcon field="transaction_date" /></th>
+                <th pSortableColumn="transaction_type">Type <p-sortIcon field="transaction_type" /></th>
+                <th pSortableColumn="symbol">Symbol <p-sortIcon field="symbol" /></th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Price / share</th>
+                <th class="text-right">Total</th>
+                <th class="w-16">Actions</th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-tx>
+              <tr>
+                <td class="text-sm text-surface-500">
+                  {{ tx.transaction_date | date: 'mediumDate' }}
+                </td>
+                <td>
+                  <p-tag
+                    [value]="typeLabels[tx.transaction_type]"
+                    [severity]="typeSeverity[tx.transaction_type]"
+                  />
+                </td>
+                <td class="font-semibold tracking-wide">{{ tx.symbol }}</td>
+                <td class="text-right tabular-nums">{{ tx.quantity ?? '—' }}</td>
+                <td class="text-right tabular-nums">
+                  @if (tx.price_per_share) { ${{ tx.price_per_share }} }
+                  @else { — }
+                </td>
+                <td class="text-right tabular-nums font-medium">${{ tx.total_amount }}</td>
+                <td>
+                  <p-button
+                    icon="pi pi-trash"
+                    [text]="true"
+                    severity="danger"
+                    size="small"
+                    (onClick)="confirmDeleteTx(tx)"
+                    [attr.aria-label]="'Delete transaction for ' + tx.symbol"
+                    pTooltip="Delete"
+                    tooltipPosition="top"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="7" class="text-center text-surface-400 py-8">
+                  No transactions recorded yet. Use "Add transaction" to get started.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+
+<!-- Add transaction dialog -->
+<p-dialog
+  header="Record transaction"
+  [visible]="txDialogVisible()"
+  (visibleChange)="txDialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '36rem' }"
+  [closable]="true"
+  (onHide)="onTxCancelled()"
+  aria-live="polite"
+>
+  <app-transaction-form
+    (submitted)="onTxSubmitted($event)"
+    (cancelled)="onTxCancelled()"
+  />
+</p-dialog>
+
+<p-confirmDialog />

@@ -1,4 +1,10 @@
 import { Routes } from '@angular/router';
 
-// Dashboard components will be added in Phase 4.
-export const DASHBOARD_ROUTES: Routes = [];
+export const DASHBOARD_ROUTES: Routes = [
+  { path: '', redirectTo: 'portfolios', pathMatch: 'full' },
+  {
+    path: 'portfolios',
+    loadChildren: () =>
+      import('../portfolio/portfolio.routes').then((m) => m.PORTFOLIO_ROUTES),
+  },
+];

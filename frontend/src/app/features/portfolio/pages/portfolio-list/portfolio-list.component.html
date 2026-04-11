@@ -1,0 +1,107 @@
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">Portfolios</h1>
+    <p-button
+      label="New portfolio"
+      icon="pi pi-plus"
+      (onClick)="openCreateDialog()"
+      aria-label="Create a new portfolio"
+    />
+  </div>
+
+  <p-table
+    [value]="portfolioService.portfolios()"
+    [loading]="portfolioService.loading()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    sortField="name"
+    [sortOrder]="1"
+    styleClass="p-datatable-sm"
+    aria-label="Portfolios table"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="name">
+          Name <p-sortIcon field="name" />
+        </th>
+        <th>Description</th>
+        <th pSortableColumn="created_at">
+          Created <p-sortIcon field="created_at" />
+        </th>
+        <th class="w-28">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-portfolio>
+      <tr>
+        <td>
+          <button
+            class="text-primary font-medium hover:underline focus:underline focus:outline-none"
+            (click)="navigateToDetail(portfolio.id)"
+            [attr.aria-label]="'View ' + portfolio.name"
+          >
+            {{ portfolio.name }}
+          </button>
+        </td>
+        <td class="text-surface-500">{{ portfolio.description || '—' }}</td>
+        <td class="text-surface-500 text-sm">
+          {{ portfolio.created_at | date: 'mediumDate' }}
+        </td>
+        <td>
+          <div class="flex gap-1">
+            <p-button
+              icon="pi pi-pencil"
+              [text]="true"
+              severity="secondary"
+              size="small"
+              (onClick)="openEditDialog(portfolio)"
+              [attr.aria-label]="'Edit ' + portfolio.name"
+              pTooltip="Edit"
+              tooltipPosition="top"
+            />
+            <p-button
+              icon="pi pi-trash"
+              [text]="true"
+              severity="danger"
+              size="small"
+              (onClick)="confirmDelete(portfolio)"
+              [attr.aria-label]="'Delete ' + portfolio.name"
+              pTooltip="Delete"
+              tooltipPosition="top"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="4" class="text-center text-surface-400 py-8">
+          No portfolios yet. Create your first one to get started.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Create / Edit dialog -->
+<p-dialog
+  [header]="editTarget() ? 'Edit portfolio' : 'New portfolio'"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '32rem' }"
+  [closable]="true"
+  (onHide)="onFormCancelled()"
+  aria-live="polite"
+>
+  <app-portfolio-form
+    [portfolio]="editTarget()"
+    (saved)="onFormSaved()"
+    (cancelled)="onFormCancelled()"
+  />
+</p-dialog>
+
+<p-confirmDialog />

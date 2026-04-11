@@ -1,0 +1,176 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+  <!-- Transaction type -->
+  <div class="flex flex-col gap-1">
+    <label for="tx-type" class="font-medium text-sm">Type <span class="text-red-500">*</span></label>
+    <p-select
+      inputId="tx-type"
+      formControlName="transaction_type"
+      [options]="typeOptions"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Select type"
+      styleClass="w-full"
+      aria-required="true"
+    />
+  </div>
+
+  <!-- Symbol -->
+  <div class="flex flex-col gap-1">
+    <label for="tx-symbol" class="font-medium text-sm">Symbol <span class="text-red-500">*</span></label>
+    <input
+      pInputText
+      id="tx-symbol"
+      formControlName="symbol"
+      placeholder="e.g. AAPL"
+      class="w-full uppercase"
+      (blur)="onSymbolBlur()"
+      aria-required="true"
+      [attr.aria-invalid]="form.controls.symbol.invalid && form.controls.symbol.touched"
+      aria-describedby="tx-symbol-error"
+    />
+    @if (form.controls.symbol.invalid && form.controls.symbol.touched) {
+      <small id="tx-symbol-error" class="text-red-500">
+        @if (form.controls.symbol.hasError('required')) { Symbol is required. }
+        @else if (form.controls.symbol.hasError('pattern')) { Must be 1–20 uppercase letters, digits, dots, or hyphens. }
+      </small>
+    }
+  </div>
+
+  <!-- Transaction date -->
+  <div class="flex flex-col gap-1">
+    <label for="tx-date" class="font-medium text-sm">Date <span class="text-red-500">*</span></label>
+    <p-datepicker
+      inputId="tx-date"
+      formControlName="transaction_date"
+      dateFormat="yy-mm-dd"
+      [showIcon]="true"
+      [maxDate]="today"
+      placeholder="YYYY-MM-DD"
+      styleClass="w-full"
+      aria-required="true"
+      [attr.aria-invalid]="form.controls.transaction_date.invalid && form.controls.transaction_date.touched"
+    />
+  </div>
+
+  <!-- Quantity (buy, sell, reinvested_dividend) -->
+  @if (showQuantity) {
+    <div class="flex flex-col gap-1">
+      <label for="tx-qty" class="font-medium text-sm">Quantity <span class="text-red-500">*</span></label>
+      <p-inputnumber
+        inputId="tx-qty"
+        formControlName="quantity"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="6"
+        [min]="0.000001"
+        placeholder="0.000000"
+        styleClass="w-full"
+        aria-required="true"
+        [attr.aria-invalid]="form.controls.quantity.invalid && form.controls.quantity.touched"
+        aria-describedby="tx-qty-error"
+      />
+      @if (form.controls.quantity.invalid && form.controls.quantity.touched) {
+        <small id="tx-qty-error" class="text-red-500">Quantity is required and must be greater than zero.</small>
+      }
+    </div>
+  }
+
+  <!-- Price per share (buy, sell, reinvested_dividend) -->
+  @if (showPricePerShare) {
+    <div class="flex flex-col gap-1">
+      <label for="tx-price" class="font-medium text-sm">Price per share <span class="text-red-500">*</span></label>
+      <p-inputnumber
+        inputId="tx-price"
+        formControlName="price_per_share"
+        mode="currency"
+        currency="USD"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="4"
+        [min]="0.0001"
+        placeholder="$0.00"
+        styleClass="w-full"
+        aria-required="true"
+        [attr.aria-invalid]="form.controls.price_per_share.invalid && form.controls.price_per_share.touched"
+        aria-describedby="tx-price-error"
+      />
+      @if (form.controls.price_per_share.invalid && form.controls.price_per_share.touched) {
+        <small id="tx-price-error" class="text-red-500">Price per share is required and must be greater than zero.</small>
+      }
+    </div>
+  }
+
+  <!-- Dividend per share (dividend, reinvested_dividend) -->
+  @if (showDividendPerShare) {
+    <div class="flex flex-col gap-1">
+      <label for="tx-dps" class="font-medium text-sm">Dividend per share <span class="text-red-500">*</span></label>
+      <p-inputnumber
+        inputId="tx-dps"
+        formControlName="dividend_per_share"
+        mode="currency"
+        currency="USD"
+        [minFractionDigits]="2"
+        [maxFractionDigits]="4"
+        [min]="0.0001"
+        placeholder="$0.00"
+        styleClass="w-full"
+        aria-required="true"
+        [attr.aria-invalid]="form.controls.dividend_per_share.invalid && form.controls.dividend_per_share.touched"
+        aria-describedby="tx-dps-error"
+      />
+      @if (form.controls.dividend_per_share.invalid && form.controls.dividend_per_share.touched) {
+        <small id="tx-dps-error" class="text-red-500">Dividend per share is required and must be greater than zero.</small>
+      }
+    </div>
+  }
+
+  <!-- Total amount -->
+  <div class="flex flex-col gap-1">
+    <label for="tx-total" class="font-medium text-sm">Total amount <span class="text-red-500">*</span></label>
+    <p-inputnumber
+      inputId="tx-total"
+      formControlName="total_amount"
+      mode="currency"
+      currency="USD"
+      [minFractionDigits]="2"
+      [maxFractionDigits]="2"
+      [min]="0.01"
+      placeholder="$0.00"
+      styleClass="w-full"
+      aria-required="true"
+      [attr.aria-invalid]="form.controls.total_amount.invalid && form.controls.total_amount.touched"
+      aria-describedby="tx-total-error"
+    />
+    @if (form.controls.total_amount.invalid && form.controls.total_amount.touched) {
+      <small id="tx-total-error" class="text-red-500">Total amount is required and must be greater than zero.</small>
+    }
+  </div>
+
+  <!-- Notes -->
+  <div class="flex flex-col gap-1">
+    <label for="tx-notes" class="font-medium text-sm">Notes</label>
+    <textarea
+      pTextarea
+      id="tx-notes"
+      formControlName="notes"
+      rows="2"
+      placeholder="Optional notes"
+      class="w-full"
+    ></textarea>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-2">
+    <p-button
+      type="button"
+      label="Cancel"
+      severity="secondary"
+      [text]="true"
+      (onClick)="onCancel()"
+    />
+    <p-button
+      type="submit"
+      label="Record transaction"
+      [loading]="isSubmitting()"
+      [disabled]="form.invalid"
+    />
+  </div>
+</form>

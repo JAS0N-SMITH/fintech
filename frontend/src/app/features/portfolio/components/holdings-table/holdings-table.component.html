@@ -1,0 +1,39 @@
+<p-table
+  [value]="holdings()"
+  sortField="symbol"
+  [sortOrder]="1"
+  styleClass="p-datatable-sm"
+  aria-label="Holdings table"
+>
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="symbol">Symbol <p-sortIcon field="symbol" /></th>
+      <th pSortableColumn="quantity" class="text-right">Quantity <p-sortIcon field="quantity" /></th>
+      <th pSortableColumn="avgCostBasis" class="text-right">Avg cost basis <p-sortIcon field="avgCostBasis" /></th>
+      <th pSortableColumn="totalCost" class="text-right">Total cost <p-sortIcon field="totalCost" /></th>
+      <th class="text-right text-surface-400 text-xs">Price / Value</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-holding>
+    <tr>
+      <td>
+        <span class="font-semibold tracking-wide">{{ holding.symbol }}</span>
+      </td>
+      <td class="text-right tabular-nums">{{ holding.quantity }}</td>
+      <td class="text-right tabular-nums">${{ holding.avgCostBasis }}</td>
+      <td class="text-right tabular-nums">${{ holding.totalCost }}</td>
+      <td class="text-right text-surface-400 text-xs">
+        <p-tag value="Phase 5" severity="secondary" />
+      </td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="5" class="text-center text-surface-400 py-8">
+        No holdings yet. Record a buy transaction to get started.
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
