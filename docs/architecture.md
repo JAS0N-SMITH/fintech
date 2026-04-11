@@ -8,6 +8,38 @@ This is a learning project designed to teach modern Angular (v21, signals, zonel
 
 ---
 
+## Development Workflow
+
+### Frontend Development
+
+```bash
+cd frontend && ng serve
+```
+
+Angular's dev server provides hot-reload out of the box. Changes to `.ts`, `.html`, and `.css` files trigger automatic rebuild and browser refresh.
+
+### Backend Development
+
+```bash
+# First time setup: install air
+go install github.com/cosmtrek/air@latest
+
+# Development with hot-reload (recommended)
+cd backend && make dev
+
+# Or: run once without hot-reload
+cd backend && make run
+```
+
+The backend uses two tools to match the Angular DX:
+
+1. **Makefile** — provides `make dev`, `make test`, `make lint` commands
+2. **air** — watches `.go` files and automatically rebuilds and restarts the server on changes
+
+This eliminates manual restart cycles during iteration. See ADR 012 for the rationale.
+
+---
+
 ## System Diagram
 
 ```
@@ -196,6 +228,7 @@ Roles stored in profiles table. JWT claims include role. Go middleware checks ro
 | Auth | Supabase Auth + JWT | Managed auth on frontend, stateless validation on backend |
 | Logging | slog (Go stdlib) | Structured JSON, zero dependencies, correlation IDs via context |
 | API docs | swaggo/swag | Generates Swagger from handler annotations, serves Swagger UI |
+| Backend dev workflow | Makefile + air | Hot-reload dev server, discoverable commands, matches frontend DX |
 
 ---
 

@@ -1,0 +1,19 @@
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o tmp/api cmd/api/main.go"
+  bin = "tmp/api"
+  full_bin = "tmp/api"
+  include_ext = ["go", "toml", "tmpl"]
+  exclude_dir = ["assets", "tmp", "vendor", "migrations"]
+  include_dir = ["internal", "cmd"]
+  delay = 1000
+  stop_on_error = true
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  app = "green"

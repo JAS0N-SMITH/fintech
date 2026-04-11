@@ -15,23 +15,34 @@ Fintech stock portfolio dashboard for tracking brokerage account positions, watc
 
 ```bash
 # Frontend
-cd frontend && ng serve                    # Dev server
+cd frontend && ng serve                    # Dev server with hot-reload
 cd frontend && ng test                     # Unit tests (Vitest)
 cd frontend && npx playwright test         # E2E tests
 cd frontend && ng build                    # Production build
 
-# Backend
-cd backend && go run cmd/api/main.go       # Dev server
-cd backend && go test ./...                # All unit tests
-cd backend && go test -tags=integration ./... # Integration tests
-cd backend && go vet ./...                 # Static analysis
-cd backend && golangci-lint run            # Linting
+# Backend (using Makefile)
+cd backend && make dev                     # Dev server with hot-reload (requires air)
+cd backend && make run                     # Dev server once
+cd backend && make test                    # All unit tests
+cd backend && make test-integration        # Integration tests
+cd backend && make lint                    # Linting with golangci-lint
+cd backend && make vet                     # Static analysis
+cd backend && make help                    # Show all available commands
 
 # Security
 cd frontend && npm audit                   # Dependency audit
 cd backend && govulncheck ./...            # Go vulnerability check
 cd backend && gosec ./...                  # Go security scanner
 ```
+
+### Backend Setup (First Time)
+
+Install air for hot-reload development:
+```bash
+go install github.com/cosmtrek/air@latest
+```
+
+Then use `make dev` for auto-reloading server (like `ng serve` for frontend).
 
 ## Project Structure
 

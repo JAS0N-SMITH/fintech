@@ -114,19 +114,32 @@ export const environment = {
 The frontend does **not** use a `.env` file — Angular environments are configured
 in `src/environments/`.
 
+### First Time: Install Backend Development Tools
+
+```bash
+# Install air for hot-reload development
+go install github.com/cosmtrek/air@latest
+```
+
 ### Run the App
 
 ```bash
-# Terminal 1 — backend
-cd backend && go run cmd/api/main.go
+# Terminal 1 — backend (with hot-reload)
+cd backend && make dev
 
-# Terminal 2 — frontend
+# Terminal 2 — frontend (with hot-reload)
 cd frontend && ng serve
 ```
 
 - Frontend: http://localhost:4200
 - Backend: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger/index.html
+
+**Alternative backend commands:**
+- `make run` — Run server once (without hot-reload)
+- `make test` — Run unit tests
+- `make test-integration` — Run integration tests (requires Docker)
+- `make help` — Show all available commands
 
 ### Run Database Migrations
 
@@ -317,6 +330,7 @@ All major technology and design choices are documented as ADRs in
 | 009 | WCAG accessibility approach                         |
 | 010 | Web-first, mobile deferred                          |
 | 011 | Error handling strategy (AppError → HTTP mapping)   |
+| 012 | Makefile + air for Go hot-reload development        |
 
 ---
 
