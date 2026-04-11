@@ -1,0 +1,387 @@
+basePath: /api/v1
+definitions:
+  handler.Problem:
+    properties:
+      detail:
+        description: Detail is a human-readable explanation specific to this occurrence.
+        type: string
+      instance:
+        description: Instance is an optional URI identifying this specific occurrence.
+        type: string
+      status:
+        description: Status mirrors the HTTP status code.
+        type: integer
+      title:
+        description: Title is a short, human-readable summary of the problem type.
+        type: string
+    type: object
+  model.CreatePortfolioInput:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  model.CreateTransactionInput:
+    properties:
+      dividend_per_share:
+        type: number
+      notes:
+        maxLength: 1000
+        type: string
+      price_per_share:
+        type: number
+      quantity:
+        type: number
+      symbol:
+        maxLength: 20
+        minLength: 1
+        type: string
+      total_amount:
+        type: number
+      transaction_date:
+        description: YYYY-MM-DD
+        type: string
+      transaction_type:
+        $ref: '#/definitions/model.TransactionType'
+    required:
+    - symbol
+    - total_amount
+    - transaction_date
+    - transaction_type
+    type: object
+  model.Portfolio:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  model.Transaction:
+    properties:
+      created_at:
+        type: string
+      dividend_per_share:
+        type: number
+      id:
+        type: string
+      notes:
+        type: string
+      portfolio_id:
+        type: string
+      price_per_share:
+        type: number
+      quantity:
+        type: number
+      symbol:
+        type: string
+      total_amount:
+        type: number
+      transaction_date:
+        type: string
+      transaction_type:
+        $ref: '#/definitions/model.TransactionType'
+      updated_at:
+        type: string
+    type: object
+  model.TransactionType:
+    enum:
+    - buy
+    - sell
+    - dividend
+    - reinvested_dividend
+    type: string
+    x-enum-varnames:
+    - TransactionTypeBuy
+    - TransactionTypeSell
+    - TransactionTypeDividend
+    - TransactionTypeReinvestedDividend
+  model.UpdatePortfolioInput:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Portfolio Dashboard
+    url: https://github.com/huchknows/fintech
+  description: REST API for managing investment portfolios and transactions.
+  license:
+    name: MIT
+  title: Portfolio Dashboard API
+  version: "1.0"
+paths:
+  /portfolios:
+    get:
+      description: Returns all portfolios owned by the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Portfolio'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: List portfolios
+      tags:
+      - portfolios
+    post:
+      consumes:
+      - application/json
+      description: Creates a new portfolio for the authenticated user.
+      parameters:
+      - description: Portfolio
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreatePortfolioInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Portfolio'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Create portfolio
+      tags:
+      - portfolios
+  /portfolios/{id}:
+    delete:
+      description: Deletes a portfolio and all its transactions.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Delete portfolio
+      tags:
+      - portfolios
+    get:
+      description: Returns a single portfolio by ID.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Portfolio'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Get portfolio
+      tags:
+      - portfolios
+    put:
+      consumes:
+      - application/json
+      description: Updates the name and description of a portfolio.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdatePortfolioInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Portfolio'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Update portfolio
+      tags:
+      - portfolios
+  /portfolios/{portfolioID}/transactions:
+    get:
+      description: Returns all transactions for a portfolio.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: portfolioID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Transaction'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: List transactions
+      tags:
+      - transactions
+    post:
+      consumes:
+      - application/json
+      description: Records a new financial transaction (buy, sell, dividend, reinvested_dividend).
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: portfolioID
+        required: true
+        type: string
+      - description: Transaction
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateTransactionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Transaction'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Record transaction
+      tags:
+      - transactions
+  /portfolios/{portfolioID}/transactions/{id}:
+    delete:
+      description: Removes a transaction from a portfolio.
+      parameters:
+      - description: Portfolio ID
+        in: path
+        name: portfolioID
+        required: true
+        type: string
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.Problem'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.Problem'
+      summary: Delete transaction
+      tags:
+      - transactions
+securityDefinitions:
+  BearerAuth:
+    description: Supabase JWT — prefix with "Bearer "
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

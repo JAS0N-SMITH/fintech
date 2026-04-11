@@ -115,3 +115,4 @@ When creating a new ADR, also append its number and title to this index.
 - 008: Snapshot-plus-deltas pattern for real-time data
 - 009: WCAG 2.1 AA accessibility compliance from day one
 - 010: Web-first development — mobile deferred
+- 011: Error handling strategy — sentinel errors, AppError, RFC 7807 Problem Details

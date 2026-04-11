@@ -1,4 +1,21 @@
 // Package main is the entrypoint for the fintech portfolio dashboard API.
+//
+// @title           Portfolio Dashboard API
+// @version         1.0
+// @description     REST API for managing investment portfolios and transactions.
+//
+// @contact.name    Portfolio Dashboard
+// @contact.url     https://github.com/huchknows/fintech
+//
+// @license.name    MIT
+//
+// @host            localhost:8080
+// @BasePath        /api/v1
+//
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Supabase JWT — prefix with "Bearer "
 package main
 
 import (
@@ -9,9 +26,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/time/rate"
 
 	"github.com/huchknows/fintech/backend/internal/config"
+	_ "github.com/huchknows/fintech/backend/docs" // swaggo generated docs
 	"github.com/huchknows/fintech/backend/internal/handler"
 	"github.com/huchknows/fintech/backend/internal/middleware"
 	"github.com/huchknows/fintech/backend/internal/repository"
@@ -71,6 +91,9 @@ func main() {
 
 	// API v1 routes
 	v1 := r.Group("/api/v1")
+
+	// Swagger UI — development only; in production restrict via NGINX or disable.
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Public routes — no auth, IP-based rate limiting from global stack.
 	public := v1.Group("/")

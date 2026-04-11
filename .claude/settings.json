@@ -15,7 +15,13 @@
       "Bash(/opt/homebrew/bin/go env:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "mcp__supabase__list_tables",
+      "Bash(go test:*)",
+      "Bash(ng test:*)",
+      "Bash(ng build:*)",
+      "Bash(go run:*)",
+      "Bash(npx ng:*)"
     ]
   }
 }
