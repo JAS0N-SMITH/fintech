@@ -34,6 +34,7 @@ import (
 	_ "github.com/huchknows/fintech/backend/docs" // swaggo generated docs
 	"github.com/huchknows/fintech/backend/internal/handler"
 	"github.com/huchknows/fintech/backend/internal/middleware"
+	"github.com/huchknows/fintech/backend/internal/provider"
 	"github.com/huchknows/fintech/backend/internal/repository"
 	"github.com/huchknows/fintech/backend/internal/service"
 )
@@ -72,8 +73,13 @@ func main() {
 	portfolioSvc := service.NewPortfolioService(portfolioRepo)
 	transactionSvc := service.NewTransactionService(transactionRepo, portfolioRepo)
 
+	finnhubProvider := provider.NewFinnhubProvider(cfg.FinnhubAPIKey, cfg.FinnhubBaseURL, cfg.FinnhubWSURL)
+	marketDataSvc := service.NewMarketDataService(finnhubProvider)
+
 	portfolioHandler := handler.NewPortfolioHandler(portfolioSvc)
 	transactionHandler := handler.NewTransactionHandler(transactionSvc)
+	marketDataHandler := handler.NewMarketDataHandler(marketDataSvc)
+	wsHandler := handler.NewWebSocketHandler(finnhubProvider)
 
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
@@ -109,6 +115,8 @@ func main() {
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
 	portfolioHandler.RegisterRoutes(authed)
+	marketDataHandler.RegisterRoutes(authed)
+	wsHandler.RegisterRoutes(authed)
 
 	// Nested transaction routes under portfolio ID.
 	portfolioGroup := authed.Group("/portfolios/:id")
@@ -121,8 +129,7 @@ func main() {
 		middleware.RequireRole("admin"),
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
-	// admin.GET("/users", ...) — added in Phase 5
-	_ = admin
+	_ = admin // admin user management added in a later phase
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("starting server", "address", addr)
