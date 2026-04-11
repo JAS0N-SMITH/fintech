@@ -4,9 +4,21 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { vi } from 'vitest';
+import { signal } from '@angular/core';
 import { TransactionService, deriveHoldings } from './transaction.service';
 import type { Transaction } from '../models/transaction.model';
 import { environment } from '../../../../environments/environment';
+import { TickerStateService } from '../../../core/ticker-state.service';
+
+// Minimal stub for TickerStateService — only the methods called by TransactionService.
+function makeTickerStateStub() {
+  return {
+    tickers: signal<Record<string, { currentPrice: number | null }>>({}).asReadonly(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+  };
+}
 
 function txBase(portfolioId: string): string {
   return `${environment.apiBaseUrl}/portfolios/${portfolioId}/transactions`;
@@ -113,10 +125,16 @@ describe('deriveHoldings()', () => {
 describe('TransactionService', () => {
   let service: TransactionService;
   let httpMock: HttpTestingController;
+  let tickerStub: ReturnType<typeof makeTickerStateStub>;
 
   beforeEach(() => {
+    tickerStub = makeTickerStateStub();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: TickerStateService, useValue: tickerStub },
+      ],
     });
     service = TestBed.inject(TransactionService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -204,5 +222,99 @@ describe('TransactionService', () => {
       service.clear();
       expect(service.transactions()).toEqual([]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deriveHoldings() — market data field initialisation
+// ---------------------------------------------------------------------------
+
+describe('deriveHoldings() market data fields', () => {
+  it('initialises currentPrice, currentValue, gainLoss, gainLossPercent to null', () => {
+    const holdings = deriveHoldings([
+      makeTx({ quantity: '10', price_per_share: '150.00', total_amount: '1500.00' }),
+    ]);
+    expect(holdings[0].currentPrice).toBeNull();
+    expect(holdings[0].currentValue).toBeNull();
+    expect(holdings[0].gainLoss).toBeNull();
+    expect(holdings[0].gainLossPercent).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// enrichHoldingsWithPrices() — gain/loss computation pure function tests
+// ---------------------------------------------------------------------------
+
+import { enrichHoldingsWithPrices } from './transaction.service';
+
+describe('enrichHoldingsWithPrices()', () => {
+  function makeHolding(
+    symbol: string,
+    quantity: string,
+    totalCost: string,
+  ) {
+    return deriveHoldings([
+      makeTx({ symbol, quantity, total_amount: totalCost }),
+    ])[0];
+  }
+
+  it('returns holding with null market fields when no price is available', () => {
+    const holding = makeHolding('AAPL', '10', '1500.00');
+    const result = enrichHoldingsWithPrices([holding], {})[0];
+    expect(result.currentPrice).toBeNull();
+    expect(result.currentValue).toBeNull();
+    expect(result.gainLoss).toBeNull();
+    expect(result.gainLossPercent).toBeNull();
+  });
+
+  it('computes currentValue = quantity × currentPrice', () => {
+    const holding = makeHolding('AAPL', '10', '1500.00');
+    const result = enrichHoldingsWithPrices([holding], { AAPL: 175.0 })[0];
+    expect(result.currentPrice).toBe(175.0);
+    expect(result.currentValue).toBe('1750.00');
+  });
+
+  it('computes gainLoss = currentValue - totalCost', () => {
+    const holding = makeHolding('AAPL', '10', '1500.00');
+    const result = enrichHoldingsWithPrices([holding], { AAPL: 175.0 })[0];
+    // 1750 - 1500 = 250
+    expect(result.gainLoss).toBe('250.00');
+  });
+
+  it('computes gainLossPercent = gainLoss / totalCost × 100', () => {
+    const holding = makeHolding('AAPL', '10', '1500.00');
+    const result = enrichHoldingsWithPrices([holding], { AAPL: 175.0 })[0];
+    // 250 / 1500 * 100 = 16.666...%
+    expect(result.gainLossPercent).toBeCloseTo(16.67, 2);
+  });
+
+  it('handles a loss correctly (negative gainLoss and gainLossPercent)', () => {
+    const holding = makeHolding('AAPL', '10', '1500.00');
+    const result = enrichHoldingsWithPrices([holding], { AAPL: 120.0 })[0];
+    // 1200 - 1500 = -300
+    expect(result.gainLoss).toBe('-300.00');
+    expect(result.gainLossPercent).toBeCloseTo(-20.0, 2);
+  });
+
+  it('handles zero totalCost gracefully (gainLossPercent is null)', () => {
+    // Edge case: reinvested dividend resulted in zero cost basis scenario
+    const holding = makeHolding('AAPL', '10', '0.00');
+    const result = enrichHoldingsWithPrices([holding], { AAPL: 50.0 })[0];
+    expect(result.gainLossPercent).toBeNull();
+  });
+
+  it('enriches multiple holdings independently', () => {
+    const holdings = deriveHoldings([
+      makeTx({ symbol: 'AAPL', quantity: '10', total_amount: '1500.00' }),
+      makeTx({ symbol: 'MSFT', quantity: '5', total_amount: '1000.00' }),
+    ]);
+    const prices = { AAPL: 160.0, MSFT: 220.0 };
+    const results = enrichHoldingsWithPrices(holdings, prices);
+
+    const aapl = results.find((h) => h.symbol === 'AAPL')!;
+    const msft = results.find((h) => h.symbol === 'MSFT')!;
+
+    expect(aapl.currentValue).toBe('1600.00');
+    expect(msft.currentValue).toBe('1100.00');
   });
 });

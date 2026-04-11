@@ -8,6 +8,7 @@ import type {
   CreateTransactionInput,
   Holding,
 } from '../models/transaction.model';
+import { TickerStateService } from '../../../core/ticker-state.service';
 
 const portfolioBase = (portfolioId: string) =>
   `${environment.apiBaseUrl}/portfolios/${portfolioId}/transactions`;
@@ -72,14 +73,47 @@ export function deriveHoldings(transactions: Transaction[]): Holding[] {
 }
 
 /**
+ * Enriches a list of holdings with live market prices.
+ *
+ * Computes currentValue, gainLoss, and gainLossPercent for each holding
+ * that has a matching entry in the prices map. Holdings without a price
+ * retain null for all market data fields.
+ *
+ * Exported as a pure function so it can be tested in isolation.
+ *
+ * @param holdings Raw holdings from deriveHoldings()
+ * @param prices   Map of symbol → current price from TickerStateService
+ */
+export function enrichHoldingsWithPrices(
+  holdings: Holding[],
+  prices: Record<string, number>,
+): Holding[] {
+  return holdings.map((h) => {
+    const currentPrice = prices[h.symbol] ?? null;
+    if (currentPrice === null) return h;
+
+    const qty = parseFloat(h.quantity);
+    const cost = parseFloat(h.totalCost);
+    const currentValue = (qty * currentPrice).toFixed(2);
+    const gainLossNum = parseFloat(currentValue) - cost;
+    const gainLoss = gainLossNum.toFixed(2);
+    const gainLossPercent = cost !== 0 ? (gainLossNum / cost) * 100 : null;
+
+    return { ...h, currentPrice, currentValue, gainLoss, gainLossPercent };
+  });
+}
+
+/**
  * TransactionService manages transaction CRUD and derives live holdings.
  *
  * The `holdings` computed signal re-derives whenever the transaction list
- * changes — no separate API call or stored state required.
+ * or live prices from TickerStateService change — no separate API call
+ * or stored state required.
  */
 @Injectable({ providedIn: 'root' })
 export class TransactionService {
   private readonly http = inject(HttpClient);
+  private readonly tickerState = inject(TickerStateService);
 
   private readonly _transactions = signal<Transaction[]>([]);
   private readonly _loading = signal(false);
@@ -91,16 +125,23 @@ export class TransactionService {
   readonly loading = this._loading.asReadonly();
 
   /**
-   * Holdings derived from the current transaction list.
+   * Holdings enriched with live market prices.
    *
-   * Re-computes automatically whenever transactions change.
+   * Re-computes automatically whenever transactions or ticker prices change.
    * Never stored in the database — ADR 007.
    */
-  readonly holdings = computed<Holding[]>(() =>
-    deriveHoldings(this._transactions()),
-  );
+  readonly holdings = computed<Holding[]>(() => {
+    const base = deriveHoldings(this._transactions());
+    const tickers = this.tickerState.tickers();
+    const prices: Record<string, number> = {};
+    for (const sym of Object.keys(tickers)) {
+      const price = tickers[sym].currentPrice;
+      if (price !== null) prices[sym] = price;
+    }
+    return enrichHoldingsWithPrices(base, prices);
+  });
 
-  /** Loads all transactions for a portfolio and resets the signal. */
+  /** Loads all transactions for a portfolio, resets the signal, and subscribes to live prices. */
   loadByPortfolio(portfolioId: string): Observable<Transaction[]> {
     this._loading.set(true);
     return this.http.get<Transaction[]>(portfolioBase(portfolioId)).pipe(
@@ -108,6 +149,11 @@ export class TransactionService {
         next: (data) => {
           this._transactions.set(data);
           this._loading.set(false);
+          // Subscribe to live prices for all symbols in the portfolio.
+          const symbols = [...new Set(data.map((tx) => tx.symbol))];
+          if (symbols.length > 0) {
+            this.tickerState.subscribe(symbols);
+          }
         },
         error: () => this._loading.set(false),
       }),
@@ -135,8 +181,12 @@ export class TransactionService {
       );
   }
 
-  /** Clears the transaction list (call when navigating away from a portfolio). */
+  /** Clears the transaction list and stops live price subscriptions. */
   clear(): void {
+    const symbols = [...new Set(this._transactions().map((tx) => tx.symbol))];
+    if (symbols.length > 0) {
+      this.tickerState.unsubscribe(symbols);
+    }
     this._transactions.set([]);
   }
 }
