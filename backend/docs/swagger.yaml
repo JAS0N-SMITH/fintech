@@ -273,13 +273,13 @@ paths:
       summary: Update portfolio
       tags:
       - portfolios
-  /portfolios/{portfolioID}/transactions:
+  /portfolios/{id}/transactions:
     get:
       description: Returns all transactions for a portfolio.
       parameters:
       - description: Portfolio ID
         in: path
-        name: portfolioID
+        name: id
         required: true
         type: string
       produces:
@@ -309,7 +309,7 @@ paths:
       parameters:
       - description: Portfolio ID
         in: path
-        name: portfolioID
+        name: id
         required: true
         type: string
       - description: Transaction
@@ -348,18 +348,18 @@ paths:
       summary: Record transaction
       tags:
       - transactions
-  /portfolios/{portfolioID}/transactions/{id}:
+  /portfolios/{id}/transactions/{txnId}:
     delete:
       description: Removes a transaction from a portfolio.
       parameters:
       - description: Portfolio ID
         in: path
-        name: portfolioID
+        name: id
         required: true
         type: string
       - description: Transaction ID
         in: path
-        name: id
+        name: txnId
         required: true
         type: string
       produces:

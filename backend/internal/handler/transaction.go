@@ -21,10 +21,11 @@ func NewTransactionHandler(svc service.TransactionService) *TransactionHandler {
 }
 
 // RegisterRoutes attaches transaction endpoints under a portfolio route group.
+// Expected to be called on a group already parameterized with :id (portfolio ID).
 func (h *TransactionHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.GET("/portfolios/:portfolioID/transactions", h.List)
-	rg.POST("/portfolios/:portfolioID/transactions", h.Create)
-	rg.DELETE("/portfolios/:portfolioID/transactions/:id", h.Delete)
+	rg.GET("/transactions", h.List)
+	rg.POST("/transactions", h.Create)
+	rg.DELETE("/transactions/:txnId", h.Delete)
 }
 
 // List godoc
@@ -32,14 +33,14 @@ func (h *TransactionHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // @Description Returns all transactions for a portfolio.
 // @Tags        transactions
 // @Produce     json
-// @Param       portfolioID path string true "Portfolio ID"
+// @Param       id path string true "Portfolio ID"
 // @Success     200 {array}  model.Transaction
 // @Failure     403 {object} Problem
 // @Failure     404 {object} Problem
-// @Router      /portfolios/{portfolioID}/transactions [get]
+// @Router      /portfolios/{id}/transactions [get]
 func (h *TransactionHandler) List(c *gin.Context) {
 	userID := c.GetString(string(middleware.ContextKeyUserID))
-	txns, err := h.svc.List(c.Request.Context(), userID, c.Param("portfolioID"))
+	txns, err := h.svc.List(c.Request.Context(), userID, c.Param("id"))
 	if err != nil {
 		RespondError(c, err)
 		return
@@ -53,15 +54,15 @@ func (h *TransactionHandler) List(c *gin.Context) {
 // @Tags        transactions
 // @Accept      json
 // @Produce     json
-// @Param       portfolioID path string                       true "Portfolio ID"
-// @Param       body        body model.CreateTransactionInput true "Transaction"
+// @Param       id   path string                       true "Portfolio ID"
+// @Param       body body model.CreateTransactionInput true "Transaction"
 // @Success     201 {object} model.Transaction
 // @Failure     400 {object} Problem
 // @Failure     403 {object} Problem
 // @Failure     404 {object} Problem
 // @Failure     409 {object} Problem
 // @Failure     422 {object} Problem
-// @Router      /portfolios/{portfolioID}/transactions [post]
+// @Router      /portfolios/{id}/transactions [post]
 func (h *TransactionHandler) Create(c *gin.Context) {
 	var in model.CreateTransactionInput
 	if err := c.ShouldBindJSON(&in); err != nil {
@@ -74,7 +75,7 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 	}
 
 	userID := c.GetString(string(middleware.ContextKeyUserID))
-	txn, err := h.svc.Create(c.Request.Context(), userID, c.Param("portfolioID"), in)
+	txn, err := h.svc.Create(c.Request.Context(), userID, c.Param("id"), in)
 	if err != nil {
 		RespondError(c, err)
 		return
@@ -87,15 +88,15 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 // @Description Removes a transaction from a portfolio.
 // @Tags        transactions
 // @Produce     json
-// @Param       portfolioID path string true "Portfolio ID"
-// @Param       id          path string true "Transaction ID"
+// @Param       id    path string true "Portfolio ID"
+// @Param       txnId path string true "Transaction ID"
 // @Success     204
 // @Failure     403 {object} Problem
 // @Failure     404 {object} Problem
-// @Router      /portfolios/{portfolioID}/transactions/{id} [delete]
+// @Router      /portfolios/{id}/transactions/{txnId} [delete]
 func (h *TransactionHandler) Delete(c *gin.Context) {
 	userID := c.GetString(string(middleware.ContextKeyUserID))
-	if err := h.svc.Delete(c.Request.Context(), userID, c.Param("id")); err != nil {
+	if err := h.svc.Delete(c.Request.Context(), userID, c.Param("txnId")); err != nil {
 		RespondError(c, err)
 		return
 	}

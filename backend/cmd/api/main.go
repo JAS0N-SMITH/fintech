@@ -79,21 +79,22 @@ func main() {
 	r := gin.New()
 
 	// Global middleware stack (order matters — see security.md):
-	// RequestID → Logger → Recovery → SecurityHeaders → CORS → RateLimit(IP)
+	// RequestID → Logger → Recovery → CORS → RateLimit(IP)
 	r.Use(
 		middleware.RequestID(),
 		middleware.Logger(),
 		gin.Recovery(),
-		middleware.SecurityHeaders(),
 		middleware.CORS(cfg.AllowedOrigins),
 		middleware.RateLimitByIP(rate.Limit(cfg.PublicRateLimit), cfg.PublicRateLimit*2),
 	)
 
-	// API v1 routes
-	v1 := r.Group("/api/v1")
-
 	// Swagger UI — development only; in production restrict via NGINX or disable.
+	// Applied before API routes to prevent SecurityHeaders from blocking assets.
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// API v1 routes with API-specific security headers
+	v1 := r.Group("/api/v1")
+	v1.Use(middleware.SecurityHeaders())
 
 	// Public routes — no auth, IP-based rate limiting from global stack.
 	public := v1.Group("/")
@@ -108,7 +109,10 @@ func main() {
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
 	portfolioHandler.RegisterRoutes(authed)
-	transactionHandler.RegisterRoutes(authed)
+
+	// Nested transaction routes under portfolio ID.
+	portfolioGroup := authed.Group("/portfolios/:id")
+	transactionHandler.RegisterRoutes(portfolioGroup)
 
 	// Admin routes — Auth + role enforcement + per-user rate limiting.
 	admin := v1.Group("/admin")

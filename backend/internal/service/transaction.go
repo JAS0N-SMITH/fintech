@@ -44,7 +44,11 @@ func (s *transactionService) Create(ctx context.Context, callerID, portfolioID s
 		}
 	}
 
-	return s.repo.Create(ctx, portfolioID, in)
+	txn, err := s.repo.Create(ctx, portfolioID, in)
+	if err != nil {
+		return nil, model.NewInternal()
+	}
+	return txn, nil
 }
 
 // List returns all transactions for a portfolio, enforcing ownership.
@@ -54,7 +58,7 @@ func (s *transactionService) List(ctx context.Context, callerID, portfolioID str
 	}
 	txns, err := s.repo.ListByPortfolioID(ctx, portfolioID)
 	if err != nil {
-		return nil, err
+		return nil, model.NewInternal()
 	}
 	if txns == nil {
 		return []*model.Transaction{}, nil
@@ -69,12 +73,19 @@ func (s *transactionService) Delete(ctx context.Context, callerID, transactionID
 		if errors.Is(err, model.ErrNotFound) {
 			return model.NewNotFound("transaction")
 		}
-		return err
+		return model.NewInternal()
 	}
 	if err := s.assertOwnership(ctx, callerID, txn.PortfolioID); err != nil {
 		return err
 	}
-	return s.repo.Delete(ctx, transactionID)
+	err = s.repo.Delete(ctx, transactionID)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.NewNotFound("transaction")
+		}
+		return model.NewInternal()
+	}
+	return nil
 }
 
 // assertOwnership returns ErrForbidden if callerID does not own portfolioID.
@@ -84,7 +95,7 @@ func (s *transactionService) assertOwnership(ctx context.Context, callerID, port
 		if errors.Is(err, model.ErrNotFound) {
 			return model.NewNotFound("portfolio")
 		}
-		return err
+		return model.NewInternal()
 	}
 	if p.UserID != callerID {
 		return model.NewForbidden()
@@ -97,7 +108,7 @@ func (s *transactionService) assertOwnership(ctx context.Context, callerID, port
 func (s *transactionService) checkSufficientHoldings(ctx context.Context, portfolioID string, in model.CreateTransactionInput) error {
 	held, err := s.repo.QuantityHeld(ctx, portfolioID, in.Symbol)
 	if err != nil {
-		return err
+		return model.NewInternal()
 	}
 	if in.Quantity.GreaterThan(held) {
 		return model.NewConflict(fmt.Sprintf(

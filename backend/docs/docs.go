@@ -234,7 +234,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/portfolios/{portfolioID}/transactions": {
+        "/portfolios/{id}/transactions": {
             "get": {
                 "description": "Returns all transactions for a portfolio.",
                 "produces": [
@@ -248,7 +248,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -293,7 +293,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
@@ -347,7 +347,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/portfolios/{portfolioID}/transactions/{id}": {
+        "/portfolios/{id}/transactions/{txnId}": {
             "delete": {
                 "description": "Removes a transaction from a portfolio.",
                 "produces": [
@@ -361,14 +361,14 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Transaction ID",
-                        "name": "id",
+                        "name": "txnId",
                         "in": "path",
                         "required": true
                     }

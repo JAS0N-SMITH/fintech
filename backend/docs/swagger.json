@@ -228,7 +228,7 @@
                 }
             }
         },
-        "/portfolios/{portfolioID}/transactions": {
+        "/portfolios/{id}/transactions": {
             "get": {
                 "description": "Returns all transactions for a portfolio.",
                 "produces": [
@@ -242,7 +242,7 @@
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -287,7 +287,7 @@
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
@@ -341,7 +341,7 @@
                 }
             }
         },
-        "/portfolios/{portfolioID}/transactions/{id}": {
+        "/portfolios/{id}/transactions/{txnId}": {
             "delete": {
                 "description": "Removes a transaction from a portfolio.",
                 "produces": [
@@ -355,14 +355,14 @@
                     {
                         "type": "string",
                         "description": "Portfolio ID",
-                        "name": "portfolioID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Transaction ID",
-                        "name": "id",
+                        "name": "txnId",
                         "in": "path",
                         "required": true
                     }
