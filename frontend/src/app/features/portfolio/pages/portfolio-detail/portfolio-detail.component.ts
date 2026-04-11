@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   OnDestroy,
   OnInit,
@@ -8,7 +9,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
@@ -19,6 +20,7 @@ import { Tag } from 'primeng/tag';
 import { Select } from 'primeng/select';
 import { PortfolioService } from '../../services/portfolio.service';
 import { TransactionService } from '../../services/transaction.service';
+import { TickerStateService } from '../../../../core/ticker-state.service';
 import { HoldingsTableComponent } from '../../components/holdings-table/holdings-table.component';
 import { TransactionFormComponent } from '../../components/transaction-form/transaction-form.component';
 import type { Transaction, TransactionType, CreateTransactionInput } from '../../models/transaction.model';
@@ -56,6 +58,7 @@ const TYPE_SEVERITY: Record<string, 'success' | 'danger' | 'info' | 'secondary'>
   selector: 'app-portfolio-detail',
   standalone: true,
   imports: [
+    CurrencyPipe,
     DatePipe,
     FormsModule,
     Button,
@@ -75,6 +78,7 @@ const TYPE_SEVERITY: Record<string, 'success' | 'danger' | 'info' | 'secondary'>
 export class PortfolioDetailComponent implements OnInit, OnDestroy {
   protected readonly portfolioService = inject(PortfolioService);
   protected readonly transactionService = inject(TransactionService);
+  protected readonly tickerState = inject(TickerStateService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly messages = inject(MessageService);
@@ -85,6 +89,28 @@ export class PortfolioDetailComponent implements OnInit, OnDestroy {
   protected readonly typeFilterOptions = TYPE_FILTER_OPTIONS;
   protected readonly typeLabels = TYPE_LABELS;
   protected readonly typeSeverity = TYPE_SEVERITY;
+
+  /** Sum of all position current values. Null until at least one price is available. */
+  protected readonly portfolioTotal = computed<string | null>(() => {
+    const holdings = this.transactionService.holdings();
+    if (holdings.every((h) => h.currentValue === null)) return null;
+    const total = holdings.reduce(
+      (sum, h) => sum + (h.currentValue !== null ? parseFloat(h.currentValue) : 0),
+      0,
+    );
+    return total.toFixed(2);
+  });
+
+  /** Sum of all position gain/loss amounts. Null until at least one price is available. */
+  protected readonly portfolioGainLoss = computed<string | null>(() => {
+    const holdings = this.transactionService.holdings();
+    if (holdings.every((h) => h.gainLoss === null)) return null;
+    const total = holdings.reduce(
+      (sum, h) => sum + (h.gainLoss !== null ? parseFloat(h.gainLoss) : 0),
+      0,
+    );
+    return total.toFixed(2);
+  });
 
   /** Portfolio ID from route params. */
   private portfolioId = '';
@@ -174,6 +200,11 @@ export class PortfolioDetailComponent implements OnInit, OnDestroy {
           detail: 'Could not delete the transaction.',
         }),
     });
+  }
+
+  /** Returns true when a string-encoded decimal is >= 0. Used for colour-coding. */
+  protected isPositive(value: string | null): boolean {
+    return value !== null && parseFloat(value) >= 0;
   }
 
   protected goBack(): void {

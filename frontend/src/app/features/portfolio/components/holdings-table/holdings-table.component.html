@@ -1,3 +1,12 @@
+<div class="flex items-center justify-between mb-3">
+  <p-tag
+    [value]="connectionLabel()"
+    [severity]="connectionSeverity()"
+    [icon]="connectionIcon()"
+    aria-label="Market data connection status: {{ connectionLabel() }}"
+  />
+</div>
+
 <p-table
   [value]="holdings()"
   sortField="symbol"
@@ -9,9 +18,11 @@
     <tr>
       <th pSortableColumn="symbol">Symbol <p-sortIcon field="symbol" /></th>
       <th pSortableColumn="quantity" class="text-right">Quantity <p-sortIcon field="quantity" /></th>
-      <th pSortableColumn="avgCostBasis" class="text-right">Avg cost basis <p-sortIcon field="avgCostBasis" /></th>
+      <th pSortableColumn="avgCostBasis" class="text-right">Avg cost <p-sortIcon field="avgCostBasis" /></th>
       <th pSortableColumn="totalCost" class="text-right">Total cost <p-sortIcon field="totalCost" /></th>
-      <th class="text-right text-surface-400 text-xs">Price / Value</th>
+      <th pSortableColumn="currentPrice" class="text-right">Price <p-sortIcon field="currentPrice" /></th>
+      <th pSortableColumn="currentValue" class="text-right">Value <p-sortIcon field="currentValue" /></th>
+      <th pSortableColumn="gainLoss" class="text-right">Gain / Loss <p-sortIcon field="gainLoss" /></th>
     </tr>
   </ng-template>
 
@@ -21,17 +32,45 @@
         <span class="font-semibold tracking-wide">{{ holding.symbol }}</span>
       </td>
       <td class="text-right tabular-nums">{{ holding.quantity }}</td>
-      <td class="text-right tabular-nums">${{ holding.avgCostBasis }}</td>
-      <td class="text-right tabular-nums">${{ holding.totalCost }}</td>
-      <td class="text-right text-surface-400 text-xs">
-        <p-tag value="Phase 5" severity="secondary" />
+      <td class="text-right tabular-nums">{{ holding.avgCostBasis | currency }}</td>
+      <td class="text-right tabular-nums">{{ holding.totalCost | currency }}</td>
+
+      <!-- Current Price — skeleton while loading -->
+      <td class="text-right tabular-nums">
+        @if (holding.currentPrice !== null) {
+          {{ holding.currentPrice | currency }}
+        } @else {
+          <span class="text-surface-300 text-xs" aria-label="Price loading">—</span>
+        }
+      </td>
+
+      <!-- Current Value -->
+      <td class="text-right tabular-nums">
+        @if (holding.currentValue !== null) {
+          {{ holding.currentValue | currency }}
+        } @else {
+          <span class="text-surface-300 text-xs" aria-label="Value loading">—</span>
+        }
+      </td>
+
+      <!-- Gain / Loss — colour coded + percent, never colour-only per WCAG 2.1 AA -->
+      <td class="text-right tabular-nums">
+        @if (holding.gainLoss !== null && holding.gainLossPercent !== null) {
+          <span [class]="gainLossClass(holding.gainLoss)">
+            <span aria-hidden="true">{{ holding.gainLoss >= '0' ? '▲' : '▼' }}</span>
+            {{ holding.gainLoss | currency }}
+            ({{ holding.gainLossPercent | number:'1.2-2' }}%)
+          </span>
+        } @else {
+          <span class="text-surface-300 text-xs" aria-label="Gain/loss loading">—</span>
+        }
       </td>
     </tr>
   </ng-template>
 
   <ng-template pTemplate="emptymessage">
     <tr>
-      <td colspan="5" class="text-center text-surface-400 py-8">
+      <td colspan="7" class="text-center text-surface-400 py-8">
         No holdings yet. Record a buy transaction to get started.
       </td>
     </tr>
