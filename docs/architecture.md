@@ -22,7 +22,7 @@ Angular's dev server provides hot-reload out of the box. Changes to `.ts`, `.htm
 
 ```bash
 # First time setup: install air
-go install github.com/cosmtrek/air@latest
+go install github.com/air-verse/air@latest
 
 # Development with hot-reload (recommended)
 cd backend && make dev

@@ -27,7 +27,7 @@ fmt:
 help:
 	@echo "Available commands:"
 	@echo "  make run                - Run the API server once"
-	@echo "  make dev                - Run with hot-reload (requires air)"
+	@echo "  make dev                - Run with hot-reload (requires air: go install github.com/air-verse/air@latest)"
 	@echo "  make test               - Run all tests"
 	@echo "  make test-unit          - Run unit tests only"
 	@echo "  make test-integration   - Run integration tests"

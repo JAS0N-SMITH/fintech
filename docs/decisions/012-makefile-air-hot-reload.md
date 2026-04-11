@@ -20,11 +20,11 @@ Adopt a two-tool approach for backend development:
    - `make test` / `make test-integration` — test shortcuts
    - `make lint` / `make vet` / `make fmt` — code quality tools
 
-2. **air** ([cosmtrek/air](https://github.com/cosmtrek/air)) for live-reload
+2. **air** ([air-verse/air](https://github.com/air-verse/air)) for live-reload
    - Watches `.go` files in `internal/` and `cmd/` directories
    - Automatically rebuilds and restarts on file changes
    - Configured via `.air.toml` to ignore migrations and vendor directories
-   - Requires one-time installation: `go install github.com/cosmtrek/air@latest`
+   - Requires one-time installation: `go install github.com/air-verse/air@latest`
 
 ## Rationale
 

@@ -39,7 +39,7 @@ cd backend && gosec ./...                  # Go security scanner
 
 Install air for hot-reload development:
 ```bash
-go install github.com/cosmtrek/air@latest
+go install github.com/air-verse/air@latest
 ```
 
 Then use `make dev` for auto-reloading server (like `ng serve` for frontend).

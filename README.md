@@ -118,7 +118,7 @@ in `src/environments/`.
 
 ```bash
 # Install air for hot-reload development
-go install github.com/cosmtrek/air@latest
+go install github.com/air-verse/air@latest
 ```
 
 ### Run the App
