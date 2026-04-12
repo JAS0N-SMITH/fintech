@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/huchknows/fintech/backend/internal/model"
@@ -9,7 +11,7 @@ import (
 // AdminService interface defines the method needed for audit logging.
 // This allows the middleware to record audit events without importing the full admin service.
 type AdminService interface {
-	RecordAuditEvent(ctx any, entry model.AuditLogEntry) error
+	RecordAuditEvent(ctx context.Context, entry model.AuditLogEntry) error
 }
 
 // AuditAction returns a Gin middleware that records audit events for successful operations.

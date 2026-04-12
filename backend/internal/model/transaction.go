@@ -49,7 +49,7 @@ type Transaction struct {
 
 // CreateTransactionInput holds validated fields for recording a new transaction.
 type CreateTransactionInput struct {
-	TransactionType  TransactionType `json:"transaction_type"  binding:"required"`
+	TransactionType  TransactionType `json:"transaction_type"  binding:"required,oneof=buy sell dividend reinvested_dividend"`
 	Symbol           string          `json:"symbol"            binding:"required,min=1,max=20"`
 	TransactionDate  string          `json:"transaction_date"  binding:"required"` // YYYY-MM-DD
 	Quantity         *decimal.Decimal `json:"quantity"`

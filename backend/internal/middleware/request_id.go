@@ -4,19 +4,25 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 )
 
 const requestIDHeader = "X-Request-ID"
 
+var requestIDPattern = regexp.MustCompile(`^[a-zA-Z0-9\-]{1,64}$`)
+
 // RequestID generates a unique ID for each request and stores it in the Gin
 // context and response header. Downstream handlers and logging middleware
 // read it via RequestIDFromContext.
+// If a client provides an X-Request-ID header, it is validated; invalid values
+// are rejected and a new ID is generated (prevents log injection).
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.GetHeader(requestIDHeader)
-		if id == "" {
+		// Validate client-supplied ID; reject if invalid to prevent log injection
+		if id == "" || !requestIDPattern.MatchString(id) {
 			id = newRequestID()
 		}
 		c.Set(requestIDHeader, id)

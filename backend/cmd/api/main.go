@@ -98,8 +98,10 @@ func main() {
 	)
 
 	// Swagger UI — development only; in production restrict via NGINX or disable.
-	// Applied before API routes to prevent SecurityHeaders from blocking assets.
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Apply security headers to Swagger assets.
+	swagger := r.Group("/swagger")
+	swagger.Use(middleware.SecurityHeaders())
+	swagger.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 routes with API-specific security headers
 	v1 := r.Group("/api/v1")
@@ -127,14 +129,16 @@ func main() {
 	transactionHandler.RegisterRoutes(portfolioGroup)
 
 	// Admin routes — Auth + role enforcement + per-user rate limiting.
+	adminRepo := repository.NewAdminRepository(pool)
+	adminSvc := service.NewAdminService(adminRepo, pool, finnhubProvider, wsHandler)
+
 	admin := v1.Group("/admin")
 	admin.Use(
 		middleware.RequireAuth(cfg.SupabaseURL),
 		middleware.RequireRole("admin"),
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
+		middleware.AuditAction("user.role_change", "user", adminSvc),
 	)
-	adminRepo := repository.NewAdminRepository(pool)
-	adminSvc := service.NewAdminService(adminRepo, pool, finnhubProvider, wsHandler)
 	adminHandler := handler.NewAdminHandler(adminSvc)
 	adminHandler.RegisterRoutes(admin)
 

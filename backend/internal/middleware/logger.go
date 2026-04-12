@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"log/slog"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,12 +14,18 @@ import (
 //
 // Each log entry includes: method, path, status, latency, client IP, and the
 // request ID set by the RequestID middleware.
+// Sensitive query parameters (e.g., ?token=) are stripped before logging.
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
 		if c.Request.URL.RawQuery != "" {
-			path += "?" + c.Request.URL.RawQuery
+			// Strip sensitive query parameters (e.g., ?token=<jwt>)
+			q := c.Request.URL.Query()
+			q.Del("token")
+			if len(q) > 0 {
+				path += "?" + q.Encode()
+			}
 		}
 
 		c.Next()

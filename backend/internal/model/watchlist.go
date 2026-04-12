@@ -34,7 +34,7 @@ type UpdateWatchlistInput struct {
 
 // CreateWatchlistItemInput is the request body for adding a ticker to a watchlist.
 type CreateWatchlistItemInput struct {
-	Symbol      string   `json:"symbol" binding:"required"`
+	Symbol      string   `json:"symbol" binding:"required,min=1,max=20"`
 	TargetPrice *float64 `json:"target_price"`
 	Notes       string   `json:"notes" binding:"max=500"`
 }

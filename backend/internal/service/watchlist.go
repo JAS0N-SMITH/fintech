@@ -3,10 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"regexp"
+	"strings"
 
 	"github.com/huchknows/fintech/backend/internal/model"
 	"github.com/huchknows/fintech/backend/internal/repository"
 )
+
+var symbolPattern = regexp.MustCompile(`^[A-Z0-9.\-]{1,20}$`)
 
 // WatchlistService handles watchlist business logic.
 type WatchlistService interface {
@@ -116,6 +120,12 @@ func (s *watchlistService) Delete(ctx context.Context, callerID, watchlistID str
 
 // AddItem adds a ticker symbol to a watchlist, enforcing ownership.
 func (s *watchlistService) AddItem(ctx context.Context, callerID, watchlistID string, in model.CreateWatchlistItemInput) (*model.WatchlistItem, error) {
+	// Validate symbol format (alphanumeric, dots, hyphens, max 20 chars)
+	symbol := strings.ToUpper(in.Symbol)
+	if !symbolPattern.MatchString(symbol) {
+		return nil, model.NewValidation("invalid symbol format")
+	}
+
 	w, err := s.repo.GetByID(ctx, watchlistID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
@@ -126,6 +136,9 @@ func (s *watchlistService) AddItem(ctx context.Context, callerID, watchlistID st
 	if w.UserID != callerID {
 		return nil, model.NewForbidden()
 	}
+
+	// Normalize the symbol to uppercase before storing
+	in.Symbol = symbol
 	item, err := s.repo.AddItem(ctx, watchlistID, in)
 	if err != nil {
 		if errors.Is(err, model.ErrDuplicate) {
