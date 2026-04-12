@@ -127,3 +127,4 @@ When creating a new ADR, also append its number and title to this index.
 - 009: WCAG 2.1 AA accessibility compliance from day one
 - 010: Web-first development — mobile deferred
 - 011: Error handling strategy — sentinel errors, AppError, RFC 7807 Problem Details
+- 012: Admin dashboard architecture — fire-and-forget audit, three-layer RBAC, atomic counters
