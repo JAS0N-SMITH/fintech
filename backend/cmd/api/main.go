@@ -69,15 +69,18 @@ func main() {
 	// Dependency injection — wire repositories → services → handlers.
 	portfolioRepo := repository.NewPortfolioRepository(pool)
 	transactionRepo := repository.NewTransactionRepository(pool)
+	watchlistRepo := repository.NewWatchlistRepository(pool)
 
 	portfolioSvc := service.NewPortfolioService(portfolioRepo)
 	transactionSvc := service.NewTransactionService(transactionRepo, portfolioRepo)
+	watchlistSvc := service.NewWatchlistService(watchlistRepo)
 
 	finnhubProvider := provider.NewFinnhubProvider(cfg.FinnhubAPIKey, cfg.FinnhubBaseURL, cfg.FinnhubWSURL)
 	marketDataSvc := service.NewMarketDataService(finnhubProvider)
 
 	portfolioHandler := handler.NewPortfolioHandler(portfolioSvc)
 	transactionHandler := handler.NewTransactionHandler(transactionSvc)
+	watchlistHandler := handler.NewWatchlistHandler(watchlistSvc)
 	marketDataHandler := handler.NewMarketDataHandler(marketDataSvc)
 	wsHandler := handler.NewWebSocketHandler(finnhubProvider)
 
@@ -115,6 +118,7 @@ func main() {
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
 	portfolioHandler.RegisterRoutes(authed)
+	watchlistHandler.RegisterRoutes(authed)
 	marketDataHandler.RegisterRoutes(authed)
 	wsHandler.RegisterRoutes(authed)
 
