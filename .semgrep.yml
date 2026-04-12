@@ -1,0 +1,67 @@
+# Semgrep configuration for security scanning
+# Runs OWASP Top 10 rules for both Go and TypeScript
+
+rules:
+  # Go security rules
+  - id: go-sql-injection
+    patterns:
+      - pattern: $DB.Query($QUERY)
+        metavariable-comparison:
+          comparison: 'match'
+          metavariable: $QUERY
+          pattern: '(fmt\.|".*%|.*" \+|concatenation)'
+    message: Potential SQL injection via string concatenation
+    languages: [go]
+    severity: ERROR
+
+  - id: go-hardcoded-credentials
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: |
+                  password := "..."
+          - patterns:
+              - pattern: |
+                  apiKey := "..."
+    message: Hardcoded credentials detected
+    languages: [go]
+    severity: ERROR
+
+  - id: go-cmd-injection
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command($CMD, strings.Split(...))
+          - pattern: os.Popen($CMD, ...)
+    message: Potential command injection via unsanitized user input
+    languages: [go]
+    severity: ERROR
+
+  # TypeScript security rules
+  - id: ts-eval-usage
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: Function(...)
+    message: Avoid eval() - use JSON.parse or safer alternatives
+    languages: [typescript]
+    severity: WARNING
+
+  - id: ts-xss-via-innerhtml
+    patterns:
+      - pattern: $ELEM.innerHTML = ...
+      - patterns:
+          - pattern-either:
+              - pattern: $ELEM.innerHTML = $USER_INPUT
+              - pattern: $ELEM.innerHTML = `...${$VAR}...`
+    message: Potential XSS via innerHTML - use textContent or Angular's sanitizer
+    languages: [typescript]
+    severity: WARNING
+
+  - id: ts-hardcoded-secrets
+    patterns:
+      - pattern-either:
+          - pattern: const $KEY = "sk_..."
+          - pattern: const $KEY = "pk_..."
+    message: Potential hardcoded API key or secret
+    languages: [typescript]
+    severity: ERROR
