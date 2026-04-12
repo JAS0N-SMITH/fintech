@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { MenuModule } from 'primeng/menu';
@@ -17,14 +17,7 @@ import { ThemeService } from '../../../core/theme.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MenuModule,
-    ButtonModule,
-    AvatarModule,
-    TooltipModule,
-  ],
+  imports: [CommonModule, RouterModule, MenuModule, ButtonModule, AvatarModule, TooltipModule],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,7 +45,7 @@ export class AppShellComponent implements OnInit {
   }
 
   toggleSidebar(): void {
-    this.isSidebarCollapsed.update(v => !v);
+    this.isSidebarCollapsed.update((v) => !v);
   }
 
   toggleTheme(): void {
@@ -76,12 +69,12 @@ export class AppShellComponent implements OnInit {
       {
         label: 'Portfolios',
         icon: 'pi pi-fw pi-briefcase',
-        routerLink: '/dashboard/portfolios',
+        routerLink: '/portfolios',
       },
       {
         label: 'Watchlists',
         icon: 'pi pi-fw pi-star',
-        routerLink: '/dashboard/watchlists',
+        routerLink: '/watchlists',
       },
     ];
 
