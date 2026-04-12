@@ -1,0 +1,251 @@
+import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { WatchlistService } from './watchlist.service';
+import { TickerStateService } from '../../../core/ticker-state.service';
+import { environment } from '../../../../environments/environment';
+import type { Watchlist, WatchlistItem, CreateWatchlistInput, UpdateWatchlistInput, CreateWatchlistItemInput } from '../models/watchlist.model';
+
+describe('WatchlistService', () => {
+  let service: WatchlistService;
+  let httpMock: HttpTestingController;
+  let tickerStateServiceMock: jasmine.SpyObj<TickerStateService>;
+
+  const baseUrl = `${environment.apiBaseUrl}/watchlists`;
+
+  beforeEach(() => {
+    const spy = jasmine.createSpyObj('TickerStateService', ['subscribe', 'unsubscribe']);
+
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        WatchlistService,
+        { provide: TickerStateService, useValue: spy },
+      ],
+    });
+
+    service = TestBed.inject(WatchlistService);
+    httpMock = TestBed.inject(HttpTestingController);
+    tickerStateServiceMock = TestBed.inject(TickerStateService) as jasmine.SpyObj<TickerStateService>;
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  describe('loadAll', () => {
+    it('should load all watchlists and update signal', (done: DoneFn) => {
+      const mockWatchlists: Watchlist[] = [
+        {
+          id: 'wl-1',
+          user_id: 'user-1',
+          name: 'Tech Stocks',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      service.loadAll().subscribe(() => {
+        expect(service.watchlists()).toEqual(mockWatchlists);
+        expect(service.loading()).toBe(false);
+        done();
+      });
+
+      const req = httpMock.expectOne(baseUrl);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockWatchlists);
+    });
+
+    it('should handle empty watchlist array', (done: DoneFn) => {
+      service.loadAll().subscribe(() => {
+        expect(service.watchlists()).toEqual([]);
+        done();
+      });
+
+      const req = httpMock.expectOne(baseUrl);
+      req.flush([]);
+    });
+  });
+
+  describe('loadById', () => {
+    it('should load watchlist by ID and load items', (done) => {
+      const watchlistId = 'wl-1';
+      const mockWatchlist: Watchlist = {
+        id: watchlistId,
+        user_id: 'user-1',
+        name: 'Tech Stocks',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      };
+      const mockItems: WatchlistItem[] = [
+        {
+          id: 'item-1',
+          watchlist_id: watchlistId,
+          symbol: 'AAPL',
+          target_price: 150,
+          notes: 'Watch',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      service.loadById(watchlistId).subscribe(() => {
+        expect(service.selectedWatchlist()).toEqual(mockWatchlist);
+        done();
+      });
+
+      // First request for watchlist
+      const watchlistReq = httpMock.expectOne(`${baseUrl}/${watchlistId}`);
+      expect(watchlistReq.request.method).toBe('GET');
+      watchlistReq.flush(mockWatchlist);
+
+      // Second request for items
+      const itemsReq = httpMock.expectOne(`${baseUrl}/${watchlistId}/items`);
+      expect(itemsReq.request.method).toBe('GET');
+      itemsReq.flush(mockItems);
+    });
+  });
+
+  describe('create', () => {
+    it('should create watchlist and prepend to list', (done) => {
+      const input: CreateWatchlistInput = { name: 'New Watchlist' };
+      const mockWatchlist: Watchlist = {
+        id: 'wl-new',
+        user_id: 'user-1',
+        name: 'New Watchlist',
+        created_at: '2024-01-02T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      };
+
+      // Set initial watchlist
+      service['_watchlists'].set([
+        {
+          id: 'wl-1',
+          user_id: 'user-1',
+          name: 'Tech Stocks',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      service.create(input).subscribe(() => {
+        const watchlists = service.watchlists();
+        expect(watchlists.length).toBe(2);
+        expect(watchlists[0]).toEqual(mockWatchlist);
+        done();
+      });
+
+      const req = httpMock.expectOne(baseUrl);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(input);
+      req.flush(mockWatchlist);
+    });
+  });
+
+  describe('update', () => {
+    it('should update watchlist in list', (done: DoneFn) => {
+      const watchlistId = 'wl-1';
+      const input: UpdateWatchlistInput = { name: 'Updated Name' };
+      const mockWatchlist: Watchlist = {
+        id: watchlistId,
+        user_id: 'user-1',
+        name: 'Updated Name',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      };
+
+      service['_watchlists'].set([
+        {
+          id: watchlistId,
+          user_id: 'user-1',
+          name: 'Old Name',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      service.update(watchlistId, input).subscribe(() => {
+        expect(service.watchlists()[0].name).toBe('Updated Name');
+        done();
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/${watchlistId}`);
+      expect(req.request.method).toBe('PUT');
+      req.flush(mockWatchlist);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete watchlist from list', (done) => {
+      const watchlistId = 'wl-1';
+      service['_watchlists'].set([
+        {
+          id: watchlistId,
+          user_id: 'user-1',
+          name: 'Tech Stocks',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      service.delete(watchlistId).subscribe(() => {
+        expect(service.watchlists().length).toBe(0);
+        done();
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/${watchlistId}`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
+  describe('addItem', () => {
+    it('should add item and subscribe to ticker price updates', (done) => {
+      const watchlistId = 'wl-1';
+      const input: CreateWatchlistItemInput = { symbol: 'AAPL' };
+      const mockItem: WatchlistItem = {
+        id: 'item-1',
+        watchlist_id: watchlistId,
+        symbol: 'AAPL',
+        created_at: '2024-01-02T00:00:00Z',
+        updated_at: '2024-01-02T00:00:00Z',
+      };
+
+      service.addItem(watchlistId, input).subscribe(() => {
+        expect(service.items().length).toBe(1);
+        expect(service.items()[0]).toEqual(mockItem);
+        expect(tickerStateServiceMock.subscribe).toHaveBeenCalledWith(['AAPL']);
+        done();
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/${watchlistId}/items`);
+      expect(req.request.method).toBe('POST');
+      req.flush(mockItem);
+    });
+  });
+
+  describe('removeItem', () => {
+    it('should remove item and unsubscribe from ticker', (done) => {
+      const watchlistId = 'wl-1';
+      const symbol = 'AAPL';
+      service['_items'].set([
+        {
+          id: 'item-1',
+          watchlist_id: watchlistId,
+          symbol: 'AAPL',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      ]);
+
+      service.removeItem(watchlistId, symbol).subscribe(() => {
+        expect(service.items().length).toBe(0);
+        expect(tickerStateServiceMock.unsubscribe).toHaveBeenCalledWith([symbol]);
+        done();
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/${watchlistId}/items/${symbol}`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+});

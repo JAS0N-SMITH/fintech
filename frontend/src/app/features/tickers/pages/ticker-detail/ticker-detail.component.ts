@@ -7,7 +7,6 @@ import {
   DestroyRef,
   ChangeDetectionStrategy,
   OnInit,
-  AfterViewInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -47,7 +46,7 @@ import { TickerTransactionsTableComponent } from '../../components/ticker-transa
   styleUrls: ['./ticker-detail.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TickerDetailComponent implements OnInit, AfterViewInit {
+export class TickerDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly marketDataService = inject(MarketDataService);
   readonly tickerStateService = inject(TickerStateService);
@@ -55,6 +54,18 @@ export class TickerDetailComponent implements OnInit, AfterViewInit {
   private readonly portfolioService = inject(PortfolioService);
   private readonly transactionService = inject(TransactionService);
   private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    // Effect that runs whenever selectedTimeframe changes.
+    // Fetches fresh bar data for the new timeframe.
+    effect(() => {
+      const tf = this.selectedTimeframe();
+      const sym = this.symbol();
+      if (!sym) return;
+
+      this.loadBars(sym, tf);
+    });
+  }
 
   // Route param
   readonly symbol = signal<string>('');
@@ -161,20 +172,6 @@ export class TickerDetailComponent implements OnInit, AfterViewInit {
       if (sym) {
         this.tickerStateService.unsubscribe([sym]);
       }
-    });
-  }
-
-  /**
-   * Effect that runs whenever the selectedTimeframe changes.
-   * Fetches fresh bar data for the new timeframe.
-   */
-  ngAfterViewInit(): void {
-    effect(() => {
-      const tf = this.selectedTimeframe();
-      const sym = this.symbol();
-      if (!sym) return;
-
-      this.loadBars(sym, tf);
     });
   }
 

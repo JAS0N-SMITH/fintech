@@ -1,0 +1,163 @@
+<div class="p-6 max-w-6xl mx-auto">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+      <button
+        class="p-2 rounded hover:bg-surface-100 dark:hover:bg-surface-800"
+        (click)="goBack()"
+        [attr.aria-label]="'Go back'"
+      >
+        <i class="pi pi-arrow-left"></i>
+      </button>
+      <h1 class="text-2xl font-semibold">
+        {{ watchlistService.selectedWatchlist()?.name || 'Watchlist' }}
+      </h1>
+    </div>
+    <p-button
+      label="Add ticker"
+      icon="pi pi-plus"
+      (onClick)="openAddItemDialog()"
+      aria-label="Add a ticker to the watchlist"
+    />
+  </div>
+
+  <!-- Items table -->
+  <p-table
+    [value]="items()"
+    [loading]="loading()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    [styleClass]="'p-datatable-sm'"
+    aria-label="Watchlist items table"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Symbol</th>
+        <th>Current Price</th>
+        <th>Day Change %</th>
+        <th>Target Price</th>
+        <th>Notes</th>
+        <th class="w-20">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-item>
+      <tr>
+        <!-- Symbol -->
+        <td class="font-semibold text-primary">
+          {{ item.symbol }}
+        </td>
+
+        <!-- Current Price -->
+        <td>
+          @if (getTickerState(item.symbol); as ticker) {
+            @if (ticker.currentPrice) {
+              {{ '$' + (ticker.currentPrice | number: '1.2-2') }}
+            } @else {
+              —
+            }
+          } @else {
+            —
+          }
+        </td>
+
+        <!-- Day Change % -->
+        <td>
+          @if (getTickerState(item.symbol); as ticker) {
+            @if (ticker.quote) {
+              <p-tag
+                [value]="
+                  ((ticker.currentPrice! - ticker.quote!.previous_close) >= 0 ? '+' : '') +
+                  (((ticker.currentPrice! - ticker.quote!.previous_close) /
+                    ticker.quote!.previous_close) *
+                    100 | number: '1.2-2') +
+                  '%'
+                "
+                [severity]="
+                  (ticker.currentPrice! - ticker.quote!.previous_close) >= 0
+                    ? 'success'
+                    : 'danger'
+                "
+              />
+            } @else {
+              —
+            }
+          } @else {
+            —
+          }
+        </td>
+
+        <!-- Target Price -->
+        <td>
+          @if (item.target_price) {
+            <p-tag
+              [value]="'$' + (item.target_price | number: '1.2-2')"
+              [severity]="
+                getTargetPriceStatus(item) === 'above' ? 'success' : 'danger'
+              "
+              [pTooltip]="
+                getTargetPriceStatus(item) === 'above'
+                  ? 'Target price reached or exceeded'
+                  : 'Below target price'
+              "
+              tooltipPosition="top"
+            />
+          } @else {
+            —
+          }
+        </td>
+
+        <!-- Notes -->
+        <td class="text-surface-500 text-sm">
+          {{ item.notes || '—' }}
+        </td>
+
+        <!-- Actions -->
+        <td>
+          <div class="flex gap-1">
+            <p-button
+              icon="pi pi-trash"
+              [text]="true"
+              severity="danger"
+              size="small"
+              (onClick)="confirmRemoveItem(item)"
+              [attr.aria-label]="'Remove ' + item.symbol"
+              pTooltip="Remove"
+              tooltipPosition="top"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="6" class="text-center text-surface-400 py-8">
+          No items yet. Add your first ticker to get started.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Add item dialog -->
+<p-dialog
+  header="Add ticker"
+  [visible]="addItemDialogVisible()"
+  (visibleChange)="addItemDialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '32rem' }"
+  [closable]="true"
+  (onHide)="onAddItemCancelled()"
+  aria-live="polite"
+>
+  <app-ticker-search
+    [watchlistId]="watchlistService.selectedWatchlist()?.id || ''"
+    (itemAdded)="onItemAdded($event)"
+    (cancelled)="onAddItemCancelled()"
+  />
+</p-dialog>
+
+<p-confirmDialog />

@@ -1,0 +1,129 @@
+<div class="p-6 max-w-5xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-semibold">Watchlists</h1>
+    <p-button
+      label="New watchlist"
+      icon="pi pi-plus"
+      (onClick)="openCreateDialog()"
+      aria-label="Create a new watchlist"
+    />
+  </div>
+
+  <p-table
+    [value]="watchlistService.watchlists()"
+    [loading]="watchlistService.loading()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    sortField="name"
+    [sortOrder]="1"
+    styleClass="p-datatable-sm"
+    aria-label="Watchlists table"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="name">
+          Name <p-sortIcon field="name" />
+        </th>
+        <th pSortableColumn="created_at">
+          Created <p-sortIcon field="created_at" />
+        </th>
+        <th class="w-28">Actions</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-watchlist>
+      <tr>
+        <td>
+          <button
+            class="text-primary font-medium hover:underline focus:underline focus:outline-none"
+            (click)="navigateToDetail(watchlist.id)"
+            [attr.aria-label]="'View ' + watchlist.name"
+          >
+            {{ watchlist.name }}
+          </button>
+        </td>
+        <td class="text-surface-500 text-sm">
+          {{ watchlist.created_at | date: 'mediumDate' }}
+        </td>
+        <td>
+          <div class="flex gap-1">
+            <p-button
+              icon="pi pi-pencil"
+              [text]="true"
+              severity="secondary"
+              size="small"
+              (onClick)="openEditDialog(watchlist)"
+              [attr.aria-label]="'Rename ' + watchlist.name"
+              pTooltip="Rename"
+              tooltipPosition="top"
+            />
+            <p-button
+              icon="pi pi-trash"
+              [text]="true"
+              severity="danger"
+              size="small"
+              (onClick)="confirmDelete(watchlist)"
+              [attr.aria-label]="'Delete ' + watchlist.name"
+              pTooltip="Delete"
+              tooltipPosition="top"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="3" class="text-center text-surface-400 py-8">
+          No watchlists yet. Create your first one to get started.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Create / Edit dialog -->
+<p-dialog
+  [header]="editTarget() ? 'Rename watchlist' : 'New watchlist'"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [style]="{ width: '32rem' }"
+  [closable]="true"
+  (onHide)="onCancel()"
+  aria-live="polite"
+>
+  <div class="space-y-4">
+    <div>
+      <label for="watchlist-name" class="block text-sm font-medium mb-2">
+        Watchlist name
+      </label>
+      <input
+        id="watchlist-name"
+        pInputText
+        [(ngModel)]="newName"
+        type="text"
+        class="w-full"
+        placeholder="e.g., Tech Stocks"
+        (keyup.enter)="onSave()"
+      />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="flex gap-2 justify-end">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        (onClick)="onCancel()"
+      />
+      <p-button
+        label="Save"
+        (onClick)="onSave()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog />
