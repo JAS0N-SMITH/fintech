@@ -45,4 +45,8 @@ type MarketDataProvider interface {
 	// is cancelled or a non-recoverable error occurs.
 	// Implementations must call handler from a single goroutine (no concurrent calls).
 	StreamPrices(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
+
+	// HealthCheck verifies that the provider is operational.
+	// Uses cached status with a short TTL to avoid exhausting rate limits.
+	HealthCheck(ctx context.Context) error
 }

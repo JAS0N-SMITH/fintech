@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -45,7 +46,8 @@ type wsServerMessage struct {
 // set of subscribed symbols; the handler fans in ticks from the provider
 // and fans out only to matching subscribers.
 type WebSocketHandler struct {
-	provider provider.MarketDataProvider
+	provider   provider.MarketDataProvider
+	connCount  atomic.Int64
 }
 
 // NewWebSocketHandler returns a WebSocketHandler backed by the given provider.
@@ -90,6 +92,10 @@ func (h *WebSocketHandler) Connect(c *gin.Context) {
 		return
 	}
 	defer conn.Close()
+
+	// Track active connections
+	h.connCount.Add(1)
+	defer h.connCount.Add(-1)
 
 	slog.InfoContext(c.Request.Context(), "websocket connected",
 		"user_id", userID,
@@ -170,4 +176,9 @@ func (h *WebSocketHandler) Connect(c *gin.Context) {
 		}
 		subMu.Unlock()
 	}
+}
+
+// Count returns the number of currently active WebSocket connections.
+func (h *WebSocketHandler) Count() int {
+	return int(h.connCount.Load())
 }

@@ -270,6 +270,15 @@ func (p *FinnhubProvider) StreamPrices(ctx context.Context, symbols []string, ha
 	}
 }
 
+// HealthCheck verifies that Finnhub API is accessible by making a cached test request.
+// Uses a fixed symbol to avoid rate limit consumption. Errors are cached with a 60-second TTL.
+func (p *FinnhubProvider) HealthCheck(ctx context.Context) error {
+	// Use a well-known symbol (AAPL) for the health check.
+	// This is cached by the REST layer, so repeated calls are fast.
+	_, err := p.GetQuote(ctx, "AAPL")
+	return err
+}
+
 // Compile-time interface compliance check.
 var _ MarketDataProvider = (*FinnhubProvider)(nil)
 

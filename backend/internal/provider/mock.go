@@ -13,6 +13,7 @@ type MockProvider struct {
 	GetQuoteFn           func(ctx context.Context, symbol string) (*model.Quote, error)
 	GetHistoricalBarsFn  func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
 	StreamPricesFn       func(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
+	HealthCheckFn        func(ctx context.Context) error
 }
 
 // GetQuote delegates to GetQuoteFn if set, otherwise returns a zero Quote.
@@ -37,6 +38,14 @@ func (m *MockProvider) StreamPrices(ctx context.Context, symbols []string, handl
 		return m.StreamPricesFn(ctx, symbols, handler)
 	}
 	<-ctx.Done()
+	return nil
+}
+
+// HealthCheck delegates to HealthCheckFn if set, otherwise returns nil.
+func (m *MockProvider) HealthCheck(ctx context.Context) error {
+	if m.HealthCheckFn != nil {
+		return m.HealthCheckFn(ctx)
+	}
 	return nil
 }
 

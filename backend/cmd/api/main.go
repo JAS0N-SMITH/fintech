@@ -133,7 +133,10 @@ func main() {
 		middleware.RequireRole("admin"),
 		middleware.RateLimitByUser(rate.Limit(cfg.AuthRateLimit), cfg.AuthRateLimit*2),
 	)
-	_ = admin // admin user management added in a later phase
+	adminRepo := repository.NewAdminRepository(pool)
+	adminSvc := service.NewAdminService(adminRepo, pool, finnhubProvider, wsHandler)
+	adminHandler := handler.NewAdminHandler(adminSvc)
+	adminHandler.RegisterRoutes(admin)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	slog.Info("starting server", "address", addr)
