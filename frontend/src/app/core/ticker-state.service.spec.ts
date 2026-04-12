@@ -186,4 +186,104 @@ describe('TickerStateService', () => {
     expect(state.dayHigh).toBe(165);
     expect(state.dayLow).toBe(155);
   });
+
+  // --- lastUpdated timestamp tracking ---
+
+  it('lastUpdated is null before any snapshot or tick', () => {
+    setup();
+    // Create state without going through subscribe
+    service['_tickers'].set({
+      AAPL: {
+        symbol: 'AAPL',
+        quote: null,
+        currentPrice: null,
+        dayHigh: null,
+        dayLow: null,
+        previousClose: null,
+        lastUpdated: null,
+      },
+    });
+
+    expect(service.tickers()['AAPL'].lastUpdated).toBeNull();
+  });
+
+  it('lastUpdated is set when snapshot is applied via subscribe', () => {
+    setup(makeQuote('AAPL', 150, 155, 145));
+    const beforeTime = new Date();
+    service.subscribe(['AAPL']);
+    const afterTime = new Date();
+
+    const state = service.tickers()['AAPL'];
+    expect(state.lastUpdated).not.toBeNull();
+    expect(state.lastUpdated!.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+    expect(state.lastUpdated!.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+  });
+
+  it('lastUpdated is updated when tick is applied', () => {
+    setup(makeQuote('AAPL', 150, 155, 145));
+    service.subscribe(['AAPL']);
+    const initialLastUpdated = service.tickers()['AAPL'].lastUpdated;
+
+    // Wait a small amount and apply tick
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 100);
+
+    const beforeTickTime = new Date();
+    service.applyTick(makeTick('AAPL', 152));
+    const afterTickTime = new Date();
+
+    const state = service.tickers()['AAPL'];
+    expect(state.lastUpdated).not.toBe(initialLastUpdated);
+    expect(state.lastUpdated!.getTime()).toBeGreaterThanOrEqual(beforeTickTime.getTime());
+    expect(state.lastUpdated!.getTime()).toBeLessThanOrEqual(afterTickTime.getTime());
+
+    vi.useRealTimers();
+  });
+
+  it('lastUpdated is updated on resync', () => {
+    setup(makeQuote('AAPL', 150, 155, 145));
+    service.subscribe(['AAPL']);
+    const initialLastUpdated = service.tickers()['AAPL'].lastUpdated;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 100);
+
+    const beforeResyncTime = new Date();
+    marketMock.getQuote.mockReturnValue(of(makeQuote('AAPL', 160, 165, 155)));
+    service.resync();
+    const afterResyncTime = new Date();
+
+    const state = service.tickers()['AAPL'];
+    expect(state.lastUpdated).not.toBe(initialLastUpdated);
+    expect(state.lastUpdated!.getTime()).toBeGreaterThanOrEqual(beforeResyncTime.getTime());
+    expect(state.lastUpdated!.getTime()).toBeLessThanOrEqual(afterResyncTime.getTime());
+
+    vi.useRealTimers();
+  });
+
+  // --- connection state transitions ---
+
+  it('connection state transitions: disconnected -> connected -> reconnecting -> connected', () => {
+    setup();
+    expect(service.connectionState()).toBe('disconnected');
+
+    service.setConnectionState('connected');
+    expect(service.connectionState()).toBe('connected');
+
+    service.setConnectionState('reconnecting');
+    expect(service.connectionState()).toBe('reconnecting');
+
+    service.setConnectionState('connected');
+    expect(service.connectionState()).toBe('connected');
+  });
+
+  it('destroy sets connection state to disconnected', () => {
+    setup();
+    service.setConnectionState('connected');
+    expect(service.connectionState()).toBe('connected');
+
+    service.destroy();
+
+    expect(service.connectionState()).toBe('disconnected');
+  });
 });

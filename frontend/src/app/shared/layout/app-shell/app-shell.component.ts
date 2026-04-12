@@ -9,6 +9,7 @@ import { MenuItem } from 'primeng/api';
 
 import { AuthService } from '../../../core/auth.service';
 import { ThemeService } from '../../../core/theme.service';
+import { ConnectionStatusComponent } from '../../components/connection-status/connection-status.component';
 
 /**
  * AppShellComponent is the main layout shell with persistent sidebar navigation.
@@ -17,7 +18,7 @@ import { ThemeService } from '../../../core/theme.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterModule, MenuModule, ButtonModule, AvatarModule, TooltipModule],
+  imports: [CommonModule, RouterModule, MenuModule, ButtonModule, AvatarModule, TooltipModule, ConnectionStatusComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

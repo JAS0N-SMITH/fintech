@@ -26,6 +26,7 @@ import { TickerChartComponent } from '../../components/ticker-chart/ticker-chart
 import { KeyStatsCardComponent } from '../../components/key-stats-card/key-stats-card.component';
 import { PositionSummaryCardComponent } from '../../components/position-summary-card/position-summary-card.component';
 import { TickerTransactionsTableComponent } from '../../components/ticker-transactions-table/ticker-transactions-table.component';
+import { ConnectionStatusComponent } from '../../../../shared/components/connection-status/connection-status.component';
 
 @Component({
   selector: 'app-ticker-detail',
@@ -41,6 +42,7 @@ import { TickerTransactionsTableComponent } from '../../components/ticker-transa
     KeyStatsCardComponent,
     PositionSummaryCardComponent,
     TickerTransactionsTableComponent,
+    ConnectionStatusComponent,
   ],
   templateUrl: './ticker-detail.component.html',
   styleUrls: ['./ticker-detail.component.css'],
@@ -89,11 +91,6 @@ export class TickerDetailComponent implements OnInit {
   );
   readonly livePrice = computed(() => this.tickerState()?.currentPrice ?? null);
 
-  // WebSocket connection state
-  readonly connectionState = computed(() =>
-    this.tickerStateService.connectionState()
-  );
-
   // Filter transactions to this symbol
   readonly symbolTransactions = computed(() =>
     this.allTransactions().filter((tx) => tx.symbol === this.symbol())
@@ -117,35 +114,6 @@ export class TickerDetailComponent implements OnInit {
 
   // Computed for UI state
   readonly isDark = computed(() => this.themeService.isDark());
-
-  // Connection label for badge
-  readonly connectionLabel = computed(() => {
-    const state = this.connectionState();
-    switch (state) {
-      case 'connected':
-        return 'Live';
-      case 'reconnecting':
-        return 'Reconnecting...';
-      case 'disconnected':
-        return 'Offline';
-      default:
-        return 'Unknown';
-    }
-  });
-
-  readonly connectionSeverity = computed(() => {
-    const state = this.connectionState();
-    switch (state) {
-      case 'connected':
-        return 'success';
-      case 'reconnecting':
-        return 'warn';
-      case 'disconnected':
-        return 'danger';
-      default:
-        return 'info';
-    }
-  });
 
   ngOnInit(): void {
     // Extract symbol from route params

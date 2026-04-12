@@ -100,7 +100,7 @@ export class TickerStateService implements OnDestroy {
 
   /**
    * Applies a single PriceTick to the matching TickerState.
-   * Updates currentPrice and tracks running day high/low.
+   * Updates currentPrice, tracks running day high/low, and updates lastUpdated timestamp.
    * Ticks for unknown symbols are silently ignored.
    */
   applyTick(tick: PriceTick): void {
@@ -118,6 +118,7 @@ export class TickerStateService implements OnDestroy {
         dayLow: current.dayLow !== null && tick.price < current.dayLow
           ? tick.price
           : current.dayLow,
+        lastUpdated: new Date(),
       },
     }));
   }
@@ -174,6 +175,7 @@ export class TickerStateService implements OnDestroy {
         dayHigh: quote.day_high,
         dayLow: quote.day_low,
         previousClose: quote.previous_close,
+        lastUpdated: new Date(),
       },
     }));
   }

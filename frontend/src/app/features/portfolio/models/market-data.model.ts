@@ -59,4 +59,6 @@ export interface TickerState {
   dayLow: number | null;
   /** Previous close from the initial quote snapshot — used for day gain/loss calculation. */
   previousClose: number | null;
+  /** Timestamp of the most recent data update (snapshot or tick). Used to show staleness when disconnected. */
+  lastUpdated: Date | null;
 }
