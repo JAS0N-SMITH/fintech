@@ -101,7 +101,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .reduce((sum, h) => {
         if (!h.currentPrice) return sum;
         const ticker = this.tickerStateService.tickers()[h.symbol];
-        if (!ticker || ticker.previousClose === null) return sum;
+        if (!ticker || ticker.previousClose === null || ticker.previousClose === undefined) return sum;
         const dayChange = parseFloat(h.quantity) * (h.currentPrice - ticker.previousClose);
         return sum + dayChange;
       }, 0)
@@ -121,10 +121,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.enrichedHoldings()
       .map(h => {
         const ticker = this.tickerStateService.tickers()[h.symbol];
-        const dayChange = h.currentPrice && ticker?.previousClose !== null
+        const dayChange = h.currentPrice && ticker && ticker.previousClose !== null
           ? parseFloat(h.quantity) * (h.currentPrice - ticker.previousClose)
           : 0;
-        const dayChangePercent = ticker?.previousClose !== null && ticker.previousClose !== 0
+        const dayChangePercent = ticker && ticker.previousClose !== null && ticker.previousClose !== 0
           ? ((h.currentPrice! - ticker.previousClose) / ticker.previousClose) * 100
           : 0;
         return { ...h, dayChange, dayChangePercent };
@@ -138,10 +138,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.enrichedHoldings()
       .map(h => {
         const ticker = this.tickerStateService.tickers()[h.symbol];
-        const dayChange = h.currentPrice && ticker?.previousClose !== null
+        const dayChange = h.currentPrice && ticker && ticker.previousClose !== null
           ? parseFloat(h.quantity) * (h.currentPrice - ticker.previousClose)
           : 0;
-        const dayChangePercent = ticker?.previousClose !== null && ticker.previousClose !== 0
+        const dayChangePercent = ticker && ticker.previousClose !== null && ticker.previousClose !== 0
           ? ((h.currentPrice! - ticker.previousClose) / ticker.previousClose) * 100
           : 0;
         return { ...h, dayChange, dayChangePercent };
