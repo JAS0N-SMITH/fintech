@@ -26,13 +26,19 @@ export default defineConfig({
   },
 
   projects: [
-    // Setup project: log in once and save auth state
+    // Setup project: log in once as regular user and save auth state
     {
       name: 'setup',
       testMatch: '**/auth.setup.ts',
     },
 
-    // Main test suite depends on auth setup
+    // Setup project: log in once as admin and save auth state
+    {
+      name: 'admin-setup',
+      testMatch: '**/admin.setup.ts',
+    },
+
+    // Main test suite depends on regular user auth setup
     {
       name: 'chromium',
       use: {
@@ -40,6 +46,17 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+    },
+
+    // Admin test suite depends on admin auth setup
+    {
+      name: 'admin',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      testMatch: '**/admin.spec.ts',
+      dependencies: ['admin-setup'],
     },
   ],
 
