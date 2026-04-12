@@ -1,0 +1,33 @@
+<div class="space-y-4">
+  <!-- Chart -->
+  <div class="h-64">
+    <p-chart
+      type="doughnut"
+      [data]="chartData()"
+      [options]="chartOptions"
+    />
+  </div>
+
+  <!-- Allocation Table -->
+  <p-table [value]="allocationData()" [tableStyle]="{ 'min-width': '100%' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Symbol</th>
+        <th>Value</th>
+        <th>Allocation %</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td class="font-semibold">{{ row.symbol }}</td>
+        <td>${{ row.value.toFixed(2) }}</td>
+        <td>
+          <p-tag
+            [value]="row.percentage + '%'"
+            [severity]="row.percentage > 25 ? 'warn' : 'info'"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

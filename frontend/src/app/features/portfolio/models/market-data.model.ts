@@ -57,4 +57,6 @@ export interface TickerState {
   dayHigh: number | null;
   /** Running day low — updated if a tick price falls below the snapshot day_low. */
   dayLow: number | null;
+  /** Previous close from the initial quote snapshot — used for day gain/loss calculation. */
+  previousClose: number | null;
 }

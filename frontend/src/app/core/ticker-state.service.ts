@@ -173,6 +173,7 @@ export class TickerStateService implements OnDestroy {
         currentPrice: quote.price,
         dayHigh: quote.day_high,
         dayLow: quote.day_low,
+        previousClose: quote.previous_close,
       },
     }));
   }

@@ -1,0 +1,194 @@
+<div class="p-6 space-y-6">
+  <!-- Page Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-surface-900 dark:text-surface-50">Dashboard</h1>
+      <p class="text-surface-600 dark:text-surface-400">Portfolio overview and performance</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="text-center py-12">
+      <p class="text-surface-500 dark:text-surface-400">Loading portfolio data...</p>
+    </div>
+  }
+
+  <!-- Summary Cards -->
+  @if (!isLoading()) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Total Portfolio Value -->
+    <p-card>
+      <div class="flex flex-col gap-2">
+        <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">
+          Total Portfolio Value
+        </span>
+        <span class="text-3xl font-bold text-primary-600">
+          ${{ totalPortfolioValue() }}
+        </span>
+        <span class="text-xs text-surface-500 dark:text-surface-400">
+          Across {{ portfolios().length }} portfolio<span *ngIf="portfolios().length !== 1">s</span>
+        </span>
+      </div>
+    </p-card>
+
+    <!-- Total Unrealized Gain/Loss -->
+    <p-card>
+      <div class="flex flex-col gap-2">
+        <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">
+          Total Unrealized Gain/Loss
+        </span>
+        <span
+          class="text-3xl font-bold"
+          [ngClass]="{
+            'text-green-600': parseFloat(totalUnrealizedGainLoss()) >= 0,
+            'text-red-600': parseFloat(totalUnrealizedGainLoss()) < 0,
+          }"
+        >
+          ${{ totalUnrealizedGainLoss() }}
+        </span>
+        <span
+          class="text-xs font-medium"
+          [ngClass]="{
+            'text-green-600': parseFloat(totalUnrealizedGainLossPercent()) >= 0,
+            'text-red-600': parseFloat(totalUnrealizedGainLossPercent()) < 0,
+          }"
+        >
+          {{ totalUnrealizedGainLossPercent() }}%
+        </span>
+      </div>
+    </p-card>
+
+    <!-- Day Gain/Loss -->
+    <p-card>
+      <div class="flex flex-col gap-2">
+        <span class="text-sm font-semibold text-surface-600 dark:text-surface-400">
+          Day Gain/Loss
+        </span>
+        <span
+          class="text-3xl font-bold"
+          [ngClass]="{
+            'text-green-600': parseFloat(dayGainLoss()) >= 0,
+            'text-red-600': parseFloat(dayGainLoss()) < 0,
+          }"
+        >
+          ${{ dayGainLoss() }}
+        </span>
+        <span
+          class="text-xs font-medium"
+          [ngClass]="{
+            'text-green-600': parseFloat(dayGainLossPercent()) >= 0,
+            'text-red-600': parseFloat(dayGainLossPercent()) < 0,
+          }"
+        >
+          {{ dayGainLossPercent() }}%
+        </span>
+      </div>
+    </p-card>
+    </div>
+  }
+
+  <!-- Charts Section (deferred) -->
+  @if (!isLoading()) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Allocation Chart -->
+      <p-card>
+        <ng-template pTemplate="header">
+          <div class="bg-surface-100 dark:bg-surface-800 p-4">
+            <h3 class="font-semibold text-surface-900 dark:text-surface-50">
+              Portfolio Allocation
+            </h3>
+          </div>
+        </ng-template>
+        <app-allocation-chart [holdings]="enrichedHoldings()" />
+      </p-card>
+
+      <!-- Performance Chart (placeholder) -->
+      <p-card>
+        <ng-template pTemplate="header">
+          <div class="bg-surface-100 dark:bg-surface-800 p-4">
+            <h3 class="font-semibold text-surface-900 dark:text-surface-50">
+              Portfolio Performance (1M)
+            </h3>
+          </div>
+        </ng-template>
+        <div class="h-64 flex items-center justify-center text-surface-500">
+          <p>Coming in Phase 7</p>
+        </div>
+      </p-card>
+    </div>
+  }
+
+  <!-- Top Movers Section -->
+  @if (!isLoading()) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Top Gainers -->
+    <p-card>
+      <ng-template pTemplate="header">
+        <div class="bg-surface-100 dark:bg-surface-800 p-4">
+          <h3 class="font-semibold text-surface-900 dark:text-surface-50">
+            Top Gainers
+          </h3>
+        </div>
+      </ng-template>
+      <p-table [value]="topGainers()" [tableStyle]="{ 'min-width': '100%' }">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>Day Change</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td class="font-semibold">{{ row.symbol }}</td>
+            <td>${{ row.currentPrice?.toFixed(2) || '-' }}</td>
+            <td>
+              <span
+                class="font-medium text-green-600"
+                [ngClass]="{ 'text-red-600': row.dayChangePercent < 0 }"
+              >
+                {{ row.dayChangePercent >= 0 ? '+' : '' }}{{ row.dayChangePercent.toFixed(2) }}%
+              </span>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+
+    <!-- Top Losers -->
+    <p-card>
+      <ng-template pTemplate="header">
+        <div class="bg-surface-100 dark:bg-surface-800 p-4">
+          <h3 class="font-semibold text-surface-900 dark:text-surface-50">
+            Top Losers
+          </h3>
+        </div>
+      </ng-template>
+      <p-table [value]="topLosers()" [tableStyle]="{ 'min-width': '100%' }">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>Day Change</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td class="font-semibold">{{ row.symbol }}</td>
+            <td>${{ row.currentPrice?.toFixed(2) || '-' }}</td>
+            <td>
+              <span
+                class="font-medium text-red-600"
+                [ngClass]="{ 'text-green-600': row.dayChangePercent > 0 }"
+              >
+                {{ row.dayChangePercent >= 0 ? '+' : '' }}{{ row.dayChangePercent.toFixed(2) }}%
+              </span>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </p-card>
+    </div>
+  }
+</div>

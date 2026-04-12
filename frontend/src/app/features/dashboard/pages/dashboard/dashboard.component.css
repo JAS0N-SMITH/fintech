@@ -1,0 +1,6 @@
+/* Dashboard component styles */
+
+:host {
+  display: block;
+  height: 100%;
+}

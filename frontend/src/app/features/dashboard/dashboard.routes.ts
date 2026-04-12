@@ -1,10 +1,26 @@
 import { Routes } from '@angular/router';
+import { AppShellComponent } from '../../shared/layout/app-shell/app-shell.component';
 
 export const DASHBOARD_ROUTES: Routes = [
-  { path: '', redirectTo: 'portfolios', pathMatch: 'full' },
   {
-    path: 'portfolios',
-    loadChildren: () =>
-      import('../portfolio/portfolio.routes').then((m) => m.PORTFOLIO_ROUTES),
+    path: '',
+    component: AppShellComponent,
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
+      },
+      {
+        path: 'portfolios',
+        loadChildren: () =>
+          import('../portfolio/portfolio.routes').then((m) => m.PORTFOLIO_ROUTES),
+      },
+      {
+        path: 'watchlists',
+        loadChildren: () =>
+          import('../watchlist/watchlist.routes').then((m) => m.WATCHLIST_ROUTES),
+      },
+    ],
   },
 ];

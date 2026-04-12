@@ -1,0 +1,116 @@
+<div class="flex h-screen bg-surface-50 dark:bg-surface-950">
+  <!-- Sidebar -->
+  <aside
+    class="flex flex-col transition-all duration-300"
+    [ngClass]="isSidebarCollapsed() ? 'w-20' : 'w-64'"
+  >
+    <div class="border-b border-surface-200 dark:border-surface-700 p-4">
+      <!-- Logo / Brand -->
+      <div class="flex items-center justify-between">
+        @if (!isSidebarCollapsed()) {
+          <h1 class="text-xl font-bold text-primary-600">Portfolio</h1>
+        }
+        <p-button
+          [icon]="isSidebarCollapsed() ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          (onClick)="toggleSidebar()"
+          [attr.aria-label]="isSidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        />
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 overflow-y-auto">
+      <p-menu
+        [model]="menuItems()"
+        [popup]="false"
+        [baseZIndex]="0"
+        [styleClass]="'w-full border-none'"
+      />
+    </nav>
+
+    <!-- User Profile & Actions -->
+    <div class="border-t border-surface-200 dark:border-surface-700 p-4 space-y-2">
+      <!-- User Avatar & Info -->
+      @if (user() && !isSidebarCollapsed()) {
+        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-surface-200 dark:border-surface-700">
+          <p-avatar
+            [label]="(user()?.email?.[0] || 'U').toUpperCase()"
+            [size]="'large'"
+            [style]="{ 'background-color': '#9c27b0', color: '#fff' }"
+            shape="circle"
+          />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-surface-900 dark:text-surface-50 truncate">
+              {{ user()?.email }}
+            </p>
+            <p class="text-xs text-surface-500 dark:text-surface-400">
+              {{ user()?.role === 'admin' ? 'Admin' : 'User' }}
+            </p>
+          </div>
+        </div>
+      }
+
+      <!-- Theme Toggle -->
+      @if (!isSidebarCollapsed()) {
+        <p-button
+          [icon]="isDark() ? 'pi pi-sun' : 'pi pi-moon'"
+          [rounded]="true"
+          [text]="true"
+          [severity]="isDark() ? 'warn' : 'secondary'"
+          (onClick)="toggleTheme()"
+          [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+          pTooltip="Toggle theme"
+          tooltipPosition="right"
+          class="w-full"
+          label="Theme"
+        />
+      } @else {
+        <p-button
+          [icon]="isDark() ? 'pi pi-sun' : 'pi pi-moon'"
+          [rounded]="true"
+          [text]="true"
+          [severity]="isDark() ? 'warn' : 'secondary'"
+          (onClick)="toggleTheme()"
+          [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+          pTooltip="Toggle theme"
+          tooltipPosition="right"
+        />
+      }
+
+      <!-- Logout -->
+      @if (!isSidebarCollapsed()) {
+        <p-button
+          icon="pi pi-sign-out"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          (onClick)="logout()"
+          [attr.aria-label]="'Logout'"
+          pTooltip="Logout"
+          tooltipPosition="right"
+          class="w-full"
+          label="Logout"
+        />
+      } @else {
+        <p-button
+          icon="pi pi-sign-out"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          (onClick)="logout()"
+          [attr.aria-label]="'Logout'"
+          pTooltip="Logout"
+          tooltipPosition="right"
+        />
+      }
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 overflow-auto">
+    <router-outlet />
+  </main>
+</div>
