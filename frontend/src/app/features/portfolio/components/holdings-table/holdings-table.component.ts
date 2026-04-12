@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { DecimalPipe, CurrencyPipe } from '@angular/common';
+import { DecimalPipe, CurrencyPipe, CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import type { Holding } from '../../models/transaction.model';
@@ -16,7 +17,7 @@ import type { ConnectionState } from '../../models/market-data.model';
 @Component({
   selector: 'app-holdings-table',
   standalone: true,
-  imports: [TableModule, Tag, DecimalPipe, CurrencyPipe],
+  imports: [CommonModule, RouterModule, TableModule, Tag, DecimalPipe, CurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './holdings-table.component.html',
 })

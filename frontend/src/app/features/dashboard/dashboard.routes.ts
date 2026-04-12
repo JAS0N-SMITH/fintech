@@ -21,6 +21,11 @@ export const DASHBOARD_ROUTES: Routes = [
         loadChildren: () =>
           import('../watchlist/watchlist.routes').then((m) => m.WATCHLIST_ROUTES),
       },
+      {
+        path: 'tickers/:symbol',
+        loadChildren: () =>
+          import('../tickers/ticker.routes').then((m) => m.TICKER_ROUTES),
+      },
     ],
   },
 ];

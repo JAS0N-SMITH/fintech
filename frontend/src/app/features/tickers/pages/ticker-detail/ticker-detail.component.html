@@ -1,0 +1,96 @@
+<div class="p-6 max-w-5xl mx-auto space-y-6">
+  <!-- Header: back button + symbol + live price + connection badge -->
+  <div class="flex items-center gap-4">
+    <p-button
+      icon="pi pi-arrow-left"
+      [text]="true"
+      severity="secondary"
+      (onClick)="goBack()"
+      aria-label="Go back to previous page"
+      [pTooltip]="'Back'"
+      tooltipPosition="bottom"
+    />
+    <div class="flex-1">
+      <h1 class="text-3xl font-bold">{{ symbol() }}</h1>
+      @if (livePrice(); as price) {
+        <p class="text-xl font-semibold text-primary-600">{{ price | currency }}</p>
+      }
+    </div>
+    <p-tag
+      [value]="connectionLabel()"
+      [severity]="connectionSeverity()"
+      class="flex-shrink-0"
+    />
+  </div>
+
+  <!-- Time range selector -->
+  <div class="flex flex-wrap gap-2">
+    @for (tf of timeframes; track tf) {
+      <p-button
+        [label]="tf"
+        [outlined]="selectedTimeframe() !== tf"
+        [severity]="selectedTimeframe() === tf ? 'primary' : 'secondary'"
+        size="small"
+        (onClick)="selectTimeframe(tf)"
+        [attr.aria-pressed]="selectedTimeframe() === tf"
+      />
+    }
+  </div>
+
+  <!-- Chart section with loading state -->
+  @if (barsLoading()) {
+    <div
+      class="h-96 bg-surface-100 dark:bg-surface-800 rounded animate-pulse"
+      role="status"
+      aria-label="Loading chart data"
+    ></div>
+  } @else if (bars().length > 0) {
+    <app-ticker-chart
+      [bars]="bars()"
+      [livePrice]="livePrice()"
+      [isDark]="isDark()"
+      role="img"
+      [attr.aria-label]="symbol() + ' price chart'"
+    />
+  } @else {
+    <p-card class="text-center">
+      <p class="text-gray-500">No chart data available</p>
+    </p-card>
+  }
+
+  <!-- Key stats card (above fold, no defer) -->
+  @if (!quoteLoading()) {
+    <app-key-stats-card [quote]="quote()" [livePrice]="livePrice()" />
+  } @else {
+    <div
+      class="h-40 bg-surface-100 dark:bg-surface-800 rounded animate-pulse"
+      role="status"
+      aria-label="Loading stats"
+    ></div>
+  }
+
+  <!-- Position summary (deferred until in viewport) -->
+  @defer (on viewport) {
+    <app-position-summary-card
+      [holding]="symbolHolding()"
+      [holdingPeriod]="holdingPeriod()"
+    />
+  } @placeholder {
+    <div
+      class="h-32 bg-surface-100 dark:bg-surface-800 rounded animate-pulse"
+      role="status"
+      aria-label="Loading position summary"
+    ></div>
+  }
+
+  <!-- Transaction history (deferred until in viewport) -->
+  @defer (on viewport) {
+    <app-ticker-transactions-table [transactions]="symbolTransactions()" />
+  } @placeholder {
+    <div
+      class="h-48 bg-surface-100 dark:bg-surface-800 rounded animate-pulse"
+      role="status"
+      aria-label="Loading transaction history"
+    ></div>
+  }
+</div>

@@ -29,7 +29,12 @@
   <ng-template pTemplate="body" let-holding>
     <tr>
       <td>
-        <span class="font-semibold tracking-wide">{{ holding.symbol }}</span>
+        <a
+          [routerLink]="['/tickers', holding.symbol]"
+          class="font-semibold tracking-wide text-primary-600 hover:underline cursor-pointer"
+        >
+          {{ holding.symbol }}
+        </a>
       </td>
       <td class="text-right tabular-nums">{{ holding.quantity }}</td>
       <td class="text-right tabular-nums">{{ holding.avgCostBasis | currency }}</td>

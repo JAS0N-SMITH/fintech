@@ -1,0 +1,94 @@
+@if (transactions().length > 0) {
+  <p-card>
+    <ng-template pTemplate="header">
+      <h2 class="text-lg font-semibold">Transaction History</h2>
+    </ng-template>
+
+    <p-table
+      [value]="transactions()"
+      [paginator]="true"
+      [rows]="10"
+      [globalFilterFields]="['notes']"
+      class="w-full"
+      sortField="transaction_date"
+      [sortOrder]="-1"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 12%">Date</th>
+          <th style="width: 10%">Type</th>
+          <th style="width: 10%">Quantity</th>
+          <th style="width: 12%">Price/Share</th>
+          <th style="width: 12%">Total Amount</th>
+          <th style="width: 44%">Notes</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-tx>
+        <tr>
+          <!-- Date -->
+          <td>
+            <span class="font-semibold">{{ tx.transaction_date }}</span>
+          </td>
+
+          <!-- Type -->
+          <td>
+            <p-tag
+              [value]="getTransactionTypeLabel(tx.transaction_type)"
+              [severity]="getTransactionTypeSeverity(tx.transaction_type)"
+              class="text-xs"
+            />
+          </td>
+
+          <!-- Quantity -->
+          <td>
+            @if (tx.quantity) {
+              <span>{{ tx.quantity }}</span>
+            } @else {
+              <span class="text-gray-400">—</span>
+            }
+          </td>
+
+          <!-- Price per Share -->
+          <td>
+            @if (tx.price_per_share) {
+              <span>{{ tx.price_per_share | currency }}</span>
+            } @else if (tx.dividend_per_share) {
+              <span>{{ tx.dividend_per_share | currency }}/share</span>
+            } @else {
+              <span class="text-gray-400">—</span>
+            }
+          </td>
+
+          <!-- Total Amount -->
+          <td>
+            <span class="font-semibold">{{ tx.total_amount | currency }}</span>
+          </td>
+
+          <!-- Notes -->
+          <td>
+            @if (tx.notes) {
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ tx.notes }}</span>
+            } @else {
+              <span class="text-gray-400 text-sm">—</span>
+            }
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center text-gray-500 py-4">
+            No transactions for this symbol
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+} @else {
+  <p-card>
+    <div class="text-center text-gray-500">
+      <p>No transaction history available</p>
+    </div>
+  </p-card>
+}

@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { TabsModule } from 'primeng/tabs';
 import { TableModule } from 'primeng/table';
@@ -32,6 +33,7 @@ import type { Portfolio } from '../../../portfolio/models/portfolio.model';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     CardModule,
     TabsModule,
     TableModule,

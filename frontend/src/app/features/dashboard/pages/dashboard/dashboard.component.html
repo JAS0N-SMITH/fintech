@@ -141,7 +141,14 @@
         </ng-template>
         <ng-template pTemplate="body" let-row>
           <tr>
-            <td class="font-semibold">{{ row.symbol }}</td>
+            <td>
+              <a
+                [routerLink]="['/tickers', row.symbol]"
+                class="font-semibold text-primary-600 hover:underline cursor-pointer"
+              >
+                {{ row.symbol }}
+              </a>
+            </td>
             <td>${{ row.currentPrice?.toFixed(2) || '-' }}</td>
             <td>
               <span
@@ -175,7 +182,14 @@
         </ng-template>
         <ng-template pTemplate="body" let-row>
           <tr>
-            <td class="font-semibold">{{ row.symbol }}</td>
+            <td>
+              <a
+                [routerLink]="['/tickers', row.symbol]"
+                class="font-semibold text-primary-600 hover:underline cursor-pointer"
+              >
+                {{ row.symbol }}
+              </a>
+            </td>
             <td>${{ row.currentPrice?.toFixed(2) || '-' }}</td>
             <td>
               <span
