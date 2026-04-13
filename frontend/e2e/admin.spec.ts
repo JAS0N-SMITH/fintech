@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectAxe, checkA11y } from 'axe-playwright';
 import { AdminPage } from './pages/admin.page';
 
 /**
@@ -235,5 +236,26 @@ test.describe('Admin Dashboard - API Security', () => {
     // Portfolio should be created with literal text, not executed
     const portfolio = await response.json();
     expect(portfolio.data.name).toBe(sqlPayload);
+  });
+});
+
+test.describe('Admin dashboard accessibility', () => {
+  test('admin dashboard is accessible', async ({ page }) => {
+    const adminPage = new AdminPage(page);
+    await adminPage.goto();
+
+    // Inject axe and run accessibility checks
+    await injectAxe(page);
+    await checkA11y(page, null, {
+      detailedReport: true,
+    });
+  });
+
+  test('admin dashboard visual regression', async ({ page }) => {
+    const adminPage = new AdminPage(page);
+    await adminPage.goto();
+
+    // Capture admin dashboard layout
+    await expect(page.locator('body')).toHaveScreenshot('admin-dashboard-layout.png');
   });
 });

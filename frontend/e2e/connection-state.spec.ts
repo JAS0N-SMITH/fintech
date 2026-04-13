@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectAxe, checkA11y } from 'axe-playwright';
 
 /**
  * Phase 9 E2E: Connection State & Error Handling
@@ -147,5 +148,27 @@ test.describe('Connection state indicator', () => {
     // When offline, it should show (depends on connection state)
     // For this test, just verify the component renders without errors
     await expect(statusComponent).toHaveCount(1);
+  });
+});
+
+test.describe('Connection state accessibility', () => {
+  test('connection indicator is accessible', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    // Inject axe and run accessibility checks
+    await injectAxe(page);
+    await checkA11y(page, null, {
+      detailedReport: true,
+    });
+  });
+
+  test('connection indicator visual regression', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    // Capture connection status indicator area
+    const indicator = page.locator('app-connection-status');
+    if (await indicator.isVisible()) {
+      await expect(indicator).toHaveScreenshot('connection-indicator.png');
+    }
   });
 });

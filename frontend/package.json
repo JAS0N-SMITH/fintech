@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "ng lint",
-    "audit": "npm audit --audit-level=high"
+    "audit": "npm audit --audit-level=high",
+    "check:bundle": "ts-node scripts/check-bundle-size.ts"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
@@ -35,6 +36,7 @@
     "@angular/cli": "^21.2.6",
     "@angular/compiler-cli": "^21.2.0",
     "@eslint/js": "^10.0.1",
+    "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.1.12",
     "angular-eslint": "21.3.1",

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectAxe, checkA11y } from 'axe-playwright';
 import { WatchlistPage } from './pages/watchlist.page';
 
 /**
@@ -204,5 +205,26 @@ test.describe('Watchlist Feature', () => {
     // Verify GOOGL is still there
     const googlRow = await watchlistPage.getItemBySymbol('GOOGL');
     await expect(googlRow).toBeVisible();
+  });
+});
+
+test.describe('Watchlist accessibility', () => {
+  test('watchlist list is accessible', async ({ page }) => {
+    const watchlistPage = new WatchlistPage(page);
+    await watchlistPage.goto();
+
+    // Inject axe and run accessibility checks
+    await injectAxe(page);
+    await checkA11y(page, null, {
+      detailedReport: true,
+    });
+  });
+
+  test('watchlist list visual regression', async ({ page }) => {
+    const watchlistPage = new WatchlistPage(page);
+    await watchlistPage.goto();
+
+    // Capture page for visual regression
+    await expect(page.locator('body')).toHaveScreenshot('watchlist-list-layout.png');
   });
 });

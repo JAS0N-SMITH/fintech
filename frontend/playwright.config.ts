@@ -25,6 +25,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
+  // Snapshot directories for visual regression
+  snapshotDir: './e2e/snapshots',
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-{platform}{ext}',
+
   projects: [
     // Setup project: log in once as regular user and save auth state
     {

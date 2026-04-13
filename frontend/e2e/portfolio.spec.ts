@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectAxe, checkA11y } from 'axe-playwright';
 import { PortfolioListPage } from './pages/portfolio-list.page';
 import { PortfolioDetailPage } from './pages/portfolio-detail.page';
 
@@ -183,5 +184,26 @@ test.describe('Transaction & holdings flow', () => {
     await listPage.goto();
     await listPage.clickDeleteFor(portfolioName);
     await listPage.confirmDelete();
+  });
+});
+
+test.describe('Portfolio accessibility', () => {
+  test('portfolio list is accessible', async ({ page }) => {
+    const listPage = new PortfolioListPage(page);
+    await listPage.goto();
+
+    // Inject axe and run accessibility checks
+    await injectAxe(page);
+    await checkA11y(page, null, {
+      detailedReport: true,
+    });
+  });
+
+  test('portfolio list visual regression', async ({ page }) => {
+    const listPage = new PortfolioListPage(page);
+    await listPage.goto();
+
+    // Capture page for visual regression
+    await expect(page.locator('body')).toHaveScreenshot('portfolio-list-layout.png');
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { injectAxe, checkA11y } from 'axe-playwright';
 import { PortfolioListPage } from './pages/portfolio-list.page';
 import { PortfolioDetailPage } from './pages/portfolio-detail.page';
 import { TickerDetailPage } from './pages/ticker-detail.page';
@@ -314,6 +315,55 @@ test.describe('Ticker detail — dark mode theme switching', () => {
     } else {
       // Theme toggle not found; just verify chart is still visible
       await expect(chartDiv).toBeVisible();
+    }
+  });
+});
+
+test.describe('Ticker detail accessibility', () => {
+  test('ticker detail page is accessible', async ({ page }) => {
+    const listPage = new PortfolioListPage(page);
+    await listPage.goto();
+
+    // Navigate to any available portfolio with holdings
+    const portfolios = await page.locator('p-table tbody tr').count();
+    if (portfolios > 0) {
+      await page.locator('p-table tbody tr').first().click();
+      await page.waitForURL(/\/portfolio\//);
+
+      // Click on first holding to navigate to ticker
+      const detailPage = new PortfolioDetailPage(page);
+      const holdings = await page.locator('[data-testid="holdings-row"]').count();
+      if (holdings > 0) {
+        await page.locator('[data-testid="holdings-row"]').first().click();
+        await page.waitForURL(/\/tickers\//);
+
+        // Now run accessibility check
+        await injectAxe(page);
+        await checkA11y(page, null, {
+          detailedReport: true,
+        });
+      }
+    }
+  });
+
+  test('ticker detail visual regression', async ({ page }) => {
+    const listPage = new PortfolioListPage(page);
+    await listPage.goto();
+
+    // Navigate to ticker if available
+    const portfolios = await page.locator('p-table tbody tr').count();
+    if (portfolios > 0) {
+      await page.locator('p-table tbody tr').first().click();
+      await page.waitForURL(/\/portfolio\//);
+
+      const holdings = await page.locator('[data-testid="holdings-row"]').count();
+      if (holdings > 0) {
+        await page.locator('[data-testid="holdings-row"]').first().click();
+        await page.waitForURL(/\/tickers\//);
+
+        // Capture visual
+        await expect(page.locator('body')).toHaveScreenshot('ticker-detail-layout.png');
+      }
     }
   });
 });
