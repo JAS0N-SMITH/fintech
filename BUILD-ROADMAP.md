@@ -318,8 +318,8 @@ Prioritize based on interest and learning goals:
 - **Locale support** — currency formatting, date formats, number separators per user preference
 - **Mobile responsive / PWA** — responsive breakpoints, service worker, offline support
 - **Options and crypto support** — extended transaction types, new asset class modeling
-- **Import from brokerage** — CSV import for transaction history from Fidelity, SoFi, etc.
-- **Notifications** — price alerts from watchlist target prices, portfolio threshold alerts
+- ~~**Import from brokerage** — CSV import for transaction history from Fidelity, SoFi, etc.~~
+- ~~**Notifications** — price alerts from watchlist target prices, portfolio threshold alerts~~
 - **Materialized views** — performance optimization if needed at scale
 - **Containerization** — Docker, docker-compose, container scanning (evaluate Grype or Docker Scout)
 - **CI/CD pipeline** — GitHub Actions for build, test, lint, security scan, deploy
