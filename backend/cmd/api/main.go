@@ -70,10 +70,13 @@ func main() {
 	portfolioRepo := repository.NewPortfolioRepository(pool)
 	transactionRepo := repository.NewTransactionRepository(pool)
 	watchlistRepo := repository.NewWatchlistRepository(pool)
+	profileRepo := repository.NewProfileRepository(pool)
 
 	portfolioSvc := service.NewPortfolioService(portfolioRepo)
 	transactionSvc := service.NewTransactionService(transactionRepo, portfolioRepo)
 	watchlistSvc := service.NewWatchlistService(watchlistRepo)
+	profileSvc := service.NewProfileService(profileRepo)
+	importSvc := service.NewImportService(transactionSvc, portfolioSvc, logger)
 
 	finnhubProvider := provider.NewFinnhubProvider(cfg.FinnhubAPIKey, cfg.FinnhubBaseURL, cfg.FinnhubWSURL)
 	marketDataSvc := service.NewMarketDataService(finnhubProvider)
@@ -83,6 +86,8 @@ func main() {
 	watchlistHandler := handler.NewWatchlistHandler(watchlistSvc)
 	marketDataHandler := handler.NewMarketDataHandler(marketDataSvc)
 	wsHandler := handler.NewWebSocketHandler(finnhubProvider)
+	profileHandler := handler.NewProfileHandler(profileSvc)
+	importHandler := handler.NewImportHandler(importSvc)
 
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
@@ -123,10 +128,12 @@ func main() {
 	watchlistHandler.RegisterRoutes(authed)
 	marketDataHandler.RegisterRoutes(authed)
 	wsHandler.RegisterRoutes(authed)
+	profileHandler.RegisterRoutes(authed)
 
-	// Nested transaction routes under portfolio ID.
+	// Nested transaction and import routes under portfolio ID.
 	portfolioGroup := authed.Group("/portfolios/:id")
 	transactionHandler.RegisterRoutes(portfolioGroup)
+	importHandler.RegisterRoutes(portfolioGroup)
 
 	// Admin routes — Auth + role enforcement + per-user rate limiting.
 	adminRepo := repository.NewAdminRepository(pool)
