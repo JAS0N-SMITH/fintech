@@ -1,0 +1,24 @@
+:host ::ng-deep {
+  /* Ensure file upload component fits nicely in modal */
+  .p-fileupload {
+    width: 100%;
+  }
+
+  /* Table styling for preview */
+  .p-datatable {
+    font-size: 0.875rem;
+  }
+
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.5rem;
+  }
+
+  .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.75rem 0.5rem;
+  }
+
+  /* Checkbox styling */
+  input[type='checkbox'] {
+    cursor: pointer;
+  }
+}

@@ -1,0 +1,176 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [header]="currentStep() === 'upload' ? 'Import CSV' : currentStep() === 'preview' ? 'Review Transactions' : 'Confirming Import'"
+  [style]="{ width: currentStep() === 'preview' ? '90vw' : '500px' }"
+  [maximizable]="true"
+  [closable]="currentStep() === 'upload'"
+  [draggable]="false">
+
+  <!-- Step 1: Upload -->
+  @if (currentStep() === 'upload') {
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-2">Select CSV File</label>
+        <p-fileUpload
+          name="file"
+          [accept]="'.csv'"
+          [maxFileSize]="5000000"
+          (onSelect)="onFileSelect($event)"
+          [showUploadButton]="false"
+          [showCancelButton]="false"
+          [chooseLabel]="'Choose CSV File'"
+          [multiple]="false">
+        </p-fileUpload>
+        @if (selectedFile()) {
+          <p class="text-sm text-gray-600 mt-2">{{ selectedFile()!.name }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2">Brokerage</label>
+        <p-select
+          [options]="brokerageOptions"
+          [(ngModel)]="selectedBrokerage"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="false"
+          placeholder="Select brokerage or auto-detect">
+        </p-select>
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <p-button
+          label="Cancel"
+          [severity]="'secondary'"
+          (onClick)="cancel()">
+        </p-button>
+        <p-button
+          label="Preview"
+          [disabled]="!selectedFile() || previewLoading()"
+          [loading]="previewLoading()"
+          (onClick)="doPreview()">
+        </p-button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 2: Preview -->
+  @if (currentStep() === 'preview') {
+    <div class="space-y-4">
+      @if (previewError()) {
+        <div class="bg-red-50 border border-red-200 rounded p-3 text-red-700">
+          {{ previewError() }}
+        </div>
+      }
+
+      <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
+        <p><strong>{{ preview()!.valid }}</strong> valid rows, <strong>{{ preview()!.errors.length }}</strong> errors</p>
+      </div>
+
+      <!-- Error list -->
+      @if (preview()!.errors.length > 0) {
+        <div class="bg-amber-50 border border-amber-200 rounded p-3">
+          <p class="font-medium text-amber-900 mb-2">Issues found:</p>
+          <ul class="text-sm text-amber-800 list-disc list-inside space-y-1">
+            @for (error of preview()!.errors; track error.row) {
+              <li>Row {{ error.row }}: {{ error.message }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <!-- Transaction table -->
+      <div class="overflow-x-auto">
+        <p-table [value]="preview()!.transactions" [scrollable]="true">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 50px">
+                <input type="checkbox"
+                  (change)="selectedRows().size === preview()!.transactions.length
+                    ? selectedRows().clear()
+                    : selectedRows().forEach((_, i) => selectedRows().add(i))"
+                  [checked]="selectedRows().size > 0">
+              </th>
+              <th>Symbol</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Amount</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-txn let-rowIndex="rowIndex">
+            <tr>
+              <td>
+                <input type="checkbox"
+                  [checked]="isRowSelected(rowIndex)"
+                  (change)="toggleRow(rowIndex)">
+              </td>
+              <td>{{ txn.symbol }}</td>
+              <td>
+                <span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">
+                  {{ txn.transaction_type }}
+                </span>
+              </td>
+              <td>{{ txn.transaction_date }}</td>
+              <td>{{ txn.quantity || '—' }}</td>
+              <td>{{ txn.price_per_share || '—' }}</td>
+              <td>{{ txn.total_amount }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <p-button
+          label="Cancel"
+          [severity]="'secondary'"
+          (onClick)="cancel()">
+        </p-button>
+        <p-button
+          label="Import Selected"
+          [disabled]="selectedRows().size === 0"
+          (onClick)="doConfirm()">
+        </p-button>
+      </div>
+    </div>
+  }
+
+  <!-- Step 3: Confirm -->
+  @if (currentStep() === 'confirm') {
+    <div class="space-y-4">
+      @if (confirmError()) {
+        <div class="bg-red-50 border border-red-200 rounded p-3 text-red-700">
+          {{ confirmError() }}
+        </div>
+      }
+
+      @if (confirming()) {
+        <div class="flex items-center justify-center p-8">
+          <p-progressSpinner
+            [style]="{ width: '50px', height: '50px' }"
+            strokeWidth="8"
+            fill="var(--surface-ground)"
+            [animationDuration]="'1s'">
+          </p-progressSpinner>
+          <span class="ml-3">Importing transactions...</span>
+        </div>
+      }
+
+      @if (!confirming() && confirmError()) {
+        <div class="flex gap-3 justify-end">
+          <p-button
+            label="Back to Preview"
+            [severity]="'secondary'"
+            (onClick)="backToPreview()">
+          </p-button>
+        </div>
+      }
+    </div>
+  }
+
+</p-dialog>
+
+<!-- Toast for notifications -->
+<p-toast></p-toast>

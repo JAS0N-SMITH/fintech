@@ -20,6 +20,13 @@
       }
     </div>
     <p-button
+      label="Import CSV"
+      icon="pi pi-upload"
+      severity="secondary"
+      (onClick)="openImportDialog()"
+      aria-label="Import transactions from CSV"
+    />
+    <p-button
       label="Add transaction"
       icon="pi pi-plus"
       (onClick)="openTxDialog()"
@@ -179,5 +186,11 @@
     (cancelled)="onTxCancelled()"
   />
 </p-dialog>
+
+<!-- CSV Import dialog -->
+<app-import-dialog
+  [portfolioId]="portfolioService.selectedPortfolio()?.id ?? ''"
+  (imported)="onImported($event)"
+/>
 
 <p-confirmDialog />

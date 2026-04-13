@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { ViewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -23,6 +24,7 @@ import { TransactionService } from '../../services/transaction.service';
 import { TickerStateService } from '../../../../core/ticker-state.service';
 import { HoldingsTableComponent } from '../../components/holdings-table/holdings-table.component';
 import { TransactionFormComponent } from '../../components/transaction-form/transaction-form.component';
+import { ImportDialogComponent } from '../../components/import-dialog/import-dialog.component';
 import type { Transaction, TransactionType, CreateTransactionInput } from '../../models/transaction.model';
 
 const TYPE_LABELS: Record<string, string> = {
@@ -70,12 +72,15 @@ const TYPE_SEVERITY: Record<string, 'success' | 'danger' | 'info' | 'secondary'>
     Select,
     HoldingsTableComponent,
     TransactionFormComponent,
+    ImportDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ConfirmationService],
   templateUrl: './portfolio-detail.component.html',
 })
 export class PortfolioDetailComponent implements OnInit, OnDestroy {
+  @ViewChild(ImportDialogComponent) importDialog?: ImportDialogComponent;
+
   protected readonly portfolioService = inject(PortfolioService);
   protected readonly transactionService = inject(TransactionService);
   protected readonly tickerState = inject(TickerStateService);
@@ -205,6 +210,22 @@ export class PortfolioDetailComponent implements OnInit, OnDestroy {
   /** Returns true when a string-encoded decimal is >= 0. Used for colour-coding. */
   protected isPositive(value: string | null): boolean {
     return value !== null && parseFloat(value) >= 0;
+  }
+
+  protected openImportDialog(): void {
+    this.importDialog?.open();
+  }
+
+  protected onImported(result: any): void {
+    // Reload transactions after successful import
+    this.transactionService.loadByPortfolio(this.portfolioId).subscribe({
+      error: () =>
+        this.messages.add({
+          severity: 'error',
+          summary: 'Reload failed',
+          detail: 'Could not reload transactions after import.',
+        }),
+    });
   }
 
   protected goBack(): void {

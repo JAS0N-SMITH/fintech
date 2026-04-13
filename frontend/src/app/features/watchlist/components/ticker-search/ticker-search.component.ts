@@ -9,6 +9,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AutoComplete } from 'primeng/autocomplete';
 import { Button } from 'primeng/button';
+import { InputNumber } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { WatchlistService } from '../../services/watchlist.service';
 
@@ -21,7 +22,7 @@ import { WatchlistService } from '../../services/watchlist.service';
 @Component({
   selector: 'app-ticker-search',
   standalone: true,
-  imports: [FormsModule, AutoComplete, Button],
+  imports: [FormsModule, AutoComplete, Button, InputNumber],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -43,6 +44,21 @@ import { WatchlistService } from '../../services/watchlist.service';
           emptyMessage="No symbols found"
           class="w-full"
           field="symbol"
+        />
+      </div>
+      <div>
+        <label for="target-price" class="block text-sm font-medium mb-2">
+          Target price (optional)
+        </label>
+        <p-inputNumber
+          id="target-price"
+          [(ngModel)]="targetPrice"
+          mode="currency"
+          currency="USD"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          placeholder="$0.00"
+          class="w-full"
         />
       </div>
     </div>
@@ -69,6 +85,7 @@ export class TickerSearchComponent {
 
   protected readonly searchInput = signal('');
   protected readonly selectedSymbol = signal<string>('');
+  protected readonly targetPrice = signal<number | null>(null);
   protected readonly suggestions = signal<Array<{ symbol: string }>>([]);
   protected readonly isSearching = signal(false);
   protected readonly isAdding = signal(false);
@@ -130,6 +147,7 @@ export class TickerSearchComponent {
     this.watchlistService
       .addItem(this.watchlistId(), {
         symbol,
+        target_price: this.targetPrice() ?? undefined,
       })
       .subscribe({
         next: () => {
