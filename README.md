@@ -183,8 +183,39 @@ backend is running.
 | PUT    | /api/v1/portfolios/:id/transactions/:txid      | JWT  | Update a transaction                 |
 | DELETE | /api/v1/portfolios/:id/transactions/:txid      | JWT  | Delete a transaction                 |
 
+### Watchlists
+
+| Method | Path                                 | Auth | Description                              |
+|--------|--------------------------------------|------|------------------------------------------|
+| GET    | /api/v1/watchlists                   | JWT  | List all watchlists for current user      |
+| POST   | /api/v1/watchlists                   | JWT  | Create a new watchlist                   |
+| GET    | /api/v1/watchlists/:id               | JWT  | Get a single watchlist with items         |
+| PUT    | /api/v1/watchlists/:id               | JWT  | Update watchlist metadata                |
+| DELETE | /api/v1/watchlists/:id               | JWT  | Delete a watchlist                       |
+| POST   | /api/v1/watchlists/:id/items         | JWT  | Add a symbol to watchlist                 |
+| PUT    | /api/v1/watchlists/:id/items/:itemId | JWT  | Update watchlist item (e.g., target price) |
+| DELETE | /api/v1/watchlists/:id/items/:itemId | JWT  | Remove a symbol from watchlist            |
+
+### Market Data
+
+| Method | Path                      | Auth | Description                          |
+|--------|---------------------------|------|--------------------------------------|
+| GET    | /api/v1/market/quote      | JWT  | Get current quote for a symbol       |
+| GET    | /api/v1/market/bars       | JWT  | Get historical OHLCV bars            |
+| WS     | /api/v1/market/stream     | JWT  | WebSocket stream for real-time ticks |
+
+### Admin
+
+| Method | Path                           | Auth              | Description                          |
+|--------|--------------------------------|-------------------|--------------------------------------|
+| GET    | /api/v1/admin/users            | JWT + Admin Role  | List all users with role and metadata |
+| PUT    | /api/v1/admin/users/:userId    | JWT + Admin Role  | Update user role (user ↔ admin)      |
+| GET    | /api/v1/admin/audit-log        | JWT + Admin Role  | Query audit log with filtering       |
+| GET    | /api/v1/admin/system-health    | JWT + Admin Role  | System metrics (connections, errors) |
+
 All protected endpoints require a `Bearer` token in the `Authorization` header.
-The token is the Supabase access token obtained at login.
+The token is the Supabase access token obtained at login. Admin endpoints additionally
+require the user to have the `admin` role in the profiles table.
 
 ---
 
@@ -207,9 +238,9 @@ The token is the Supabase access token obtained at login.
 │       │   │   └── services/
 │       │   │       ├── portfolio.service.ts
 │       │   │       └── transaction.service.ts  # includes deriveHoldings()
-│       │   ├── dashboard/               # (Phase 6 — not yet built)
-│       │   ├── watchlist/               # (Phase 8 — not yet built)
-│       │   └── admin/                   # (Phase 10 — not yet built)
+│       │   ├── dashboard/               # Portfolio overview, summary charts (Phase 6)
+│       │   ├── watchlist/               # Watchlist CRUD, target price tracking (Phase 8)
+│       │   └── admin/                   # User management, audit logs, system health (Phase 10)
 │       ├── app.routes.ts
 │       └── app.config.ts               # Zoneless bootstrap, provideHttpClient
 │
@@ -289,14 +320,14 @@ Key test coverage areas:
 | 2     | Auth Foundation               | Complete    |
 | 3     | Database Schema & API         | Complete    |
 | 4     | Portfolio & Transaction UI    | Complete    |
-| 5     | Market Data Integration       | Not started |
-| 6     | Dashboard Overview            | Not started |
-| 7     | Ticker Detail View            | Not started |
-| 8     | Watchlists                    | Not started |
-| 9     | Connection State & Error Handling | Not started |
-| 10    | Admin Dashboard               | Not started |
-| 11    | Security Hardening            | Not started |
-| 12    | Polish & MVP Release          | Not started |
+| 5     | Market Data Integration       | Complete    |
+| 6     | Dashboard Overview            | Complete    |
+| 7     | Ticker Detail View            | Complete    |
+| 8     | Watchlists                    | Complete    |
+| 9     | Connection State & Error Handling | Complete    |
+| 10    | Admin Dashboard               | Complete    |
+| 11    | Security Hardening            | Complete    |
+| 12    | Polish & MVP Release          | In Progress |
 
 See `docs/build-phases/` for written summaries of completed phases. See
 `CLAUDE.md` for full scope, task lists, test requirements, and definition of done
@@ -330,7 +361,9 @@ All major technology and design choices are documented as ADRs in
 | 009 | WCAG accessibility approach                         |
 | 010 | Web-first, mobile deferred                          |
 | 011 | Error handling strategy (AppError → HTTP mapping)   |
-| 012 | Makefile + air for Go hot-reload development        |
+| 012 | Admin dashboard architecture (RBAC, audit logging)  |
+| 013 | Connection state & error resilience (WebSocket reconnection, retry logic) |
+| 014 | Makefile + air for Go hot-reload development        |
 
 ---
 
