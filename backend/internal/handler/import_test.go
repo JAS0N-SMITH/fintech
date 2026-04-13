@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -15,18 +16,17 @@ import (
 
 	"github.com/huchknows/fintech/backend/internal/middleware"
 	"github.com/huchknows/fintech/backend/internal/model"
-	"github.com/huchknows/fintech/backend/internal/service"
 )
 
 // MockImportService for testing.
 type mockImportService struct {
-	previewFunc func(portfolioID, brokerage string) (*model.ImportPreview, error)
-	confirmFunc func(portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error)
+	previewFunc func(ctx context.Context, callerID, portfolioID string, csvData io.Reader, brokerage string) (*model.ImportPreview, error)
+	confirmFunc func(ctx context.Context, callerID, portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error)
 }
 
-func (m *mockImportService) Preview(portfolioID string, file []byte, brokerage string) (*model.ImportPreview, error) {
+func (m *mockImportService) Preview(ctx context.Context, callerID, portfolioID string, csvData io.Reader, brokerage string) (*model.ImportPreview, error) {
 	if m.previewFunc != nil {
-		return m.previewFunc(portfolioID, brokerage)
+		return m.previewFunc(ctx, callerID, portfolioID, csvData, brokerage)
 	}
 	return &model.ImportPreview{
 		Parsed:       0,
@@ -36,9 +36,9 @@ func (m *mockImportService) Preview(portfolioID string, file []byte, brokerage s
 	}, nil
 }
 
-func (m *mockImportService) Confirm(portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error) {
+func (m *mockImportService) Confirm(ctx context.Context, callerID, portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error) {
 	if m.confirmFunc != nil {
-		return m.confirmFunc(portfolioID, req)
+		return m.confirmFunc(ctx, callerID, portfolioID, req)
 	}
 	return &model.ImportResult{
 		Created:  0,
@@ -142,7 +142,7 @@ func TestImportHandlerPreview(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := &mockImportService{}
 			if tt.mockFunc != nil {
-				mockSvc.previewFunc = func(portfolioID, brokerage string) (*model.ImportPreview, error) {
+				mockSvc.previewFunc = func(ctx context.Context, callerID, portfolioID string, csvData io.Reader, brokerage string) (*model.ImportPreview, error) {
 					return tt.mockFunc()
 				}
 			}
@@ -201,8 +201,8 @@ func TestImportHandlerConfirm(t *testing.T) {
 						Symbol:          "AAPL",
 						TransactionDate: "2024-01-15",
 						Quantity:        decPtr(decimal.NewFromInt(10)),
-						PricePerShare:   decPtr(decimal.NewFromString("150.00")),
-						TotalAmount:     decimal.NewFromString("1500.00"),
+						PricePerShare:   decPtr(mustDecimal("150.00")),
+						TotalAmount:     mustDecimal("1500.00"),
 					},
 				},
 			},
@@ -226,16 +226,16 @@ func TestImportHandlerConfirm(t *testing.T) {
 						Symbol:          "AAPL",
 						TransactionDate: "2024-01-15",
 						Quantity:        decPtr(decimal.NewFromInt(10)),
-						PricePerShare:   decPtr(decimal.NewFromString("150.00")),
-						TotalAmount:     decimal.NewFromString("1500.00"),
+						PricePerShare:   decPtr(mustDecimal("150.00")),
+						TotalAmount:     mustDecimal("1500.00"),
 					},
 					{
 						TransactionType: model.TransactionTypeSell,
 						Symbol:          "AAPL",
 						TransactionDate: "2024-02-01",
 						Quantity:        decPtr(decimal.NewFromInt(100)),
-						PricePerShare:   decPtr(decimal.NewFromString("160.00")),
-						TotalAmount:     decimal.NewFromString("16000.00"),
+						PricePerShare:   decPtr(mustDecimal("160.00")),
+						TotalAmount:     mustDecimal("16000.00"),
 					},
 				},
 			},
@@ -269,7 +269,7 @@ func TestImportHandlerConfirm(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := &mockImportService{}
 			if tt.mockFunc != nil {
-				mockSvc.confirmFunc = func(portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error) {
+				mockSvc.confirmFunc = func(ctx context.Context, callerID, portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error) {
 					return tt.mockFunc()
 				}
 			}
@@ -360,7 +360,12 @@ func TestImportHandlerInvalidFileType(t *testing.T) {
 	}
 }
 
-// Helper
+// Helpers
 func decPtr(d decimal.Decimal) *decimal.Decimal {
 	return &d
+}
+
+func mustDecimal(s string) decimal.Decimal {
+	d, _ := decimal.NewFromString(s)
+	return d
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/huchknows/fintech/backend/internal/model"
-	"github.com/huchknows/fintech/backend/internal/repository"
 	"github.com/huchknows/fintech/backend/internal/provider"
+	"github.com/huchknows/fintech/backend/internal/repository"
 )
 
 // AdminService defines operations for admin functionality.
@@ -54,7 +54,7 @@ func NewAdminService(
 func (s *adminService) ListUsers(ctx context.Context, page, pageSize int) (*model.AdminUserList, error) {
 	users, total, err := s.repo.ListUsers(ctx, page, pageSize)
 	if err != nil {
-		return nil, model.NewInternal("failed to list users")
+		return nil, model.NewInternal()
 	}
 
 	return &model.AdminUserList{
@@ -99,7 +99,7 @@ func (s *adminService) UpdateUserRole(ctx context.Context, adminID, targetID, ne
 func (s *adminService) ListAuditLog(ctx context.Context, filter repository.AuditLogFilter) (*model.AuditLogList, error) {
 	entries, total, err := s.repo.ListAuditLog(ctx, filter)
 	if err != nil {
-		return nil, model.NewInternal("failed to list audit log")
+		return nil, model.NewInternal()
 	}
 
 	return &model.AuditLogList{
@@ -160,5 +160,5 @@ func (s *adminService) wrapRepoError(err error) error {
 	if err == model.ErrNotFound {
 		return model.NewNotFound("user")
 	}
-	return model.NewInternal("database error")
+	return model.NewInternal()
 }

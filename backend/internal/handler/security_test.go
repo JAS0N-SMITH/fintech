@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,14 +12,13 @@ import (
 
 	"github.com/huchknows/fintech/backend/internal/middleware"
 	"github.com/huchknows/fintech/backend/internal/model"
-	"github.com/huchknows/fintech/backend/internal/service"
 )
 
 // TestPortfolioNameSQLInjection verifies that SQL injection attempts in portfolio names
 // are safely escaped and stored as literal text, not executed.
 func TestPortfolioNameSQLInjection(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			// Service layer should have already validated; just store it
 			return &model.Portfolio{
 				ID:   "test-id",
@@ -34,7 +34,7 @@ func TestPortfolioNameSQLInjection(t *testing.T) {
 		c.Next()
 	})
 
-	handler.RegisterRoutes(router)
+	handler.RegisterRoutes(&router.RouterGroup)
 
 	tests := []struct {
 		name     string
@@ -95,7 +95,7 @@ func TestPortfolioNameSQLInjection(t *testing.T) {
 // are safely stored as literal text.
 func TestPortfolioNameXSS(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			return &model.Portfolio{
 				ID:   "test-id",
 				Name: in.Name,
@@ -110,7 +110,7 @@ func TestPortfolioNameXSS(t *testing.T) {
 		c.Next()
 	})
 
-	handler.RegisterRoutes(router)
+	handler.RegisterRoutes(&router.RouterGroup)
 
 	tests := []struct {
 		name    string
@@ -164,7 +164,7 @@ func TestPortfolioNameXSS(t *testing.T) {
 // TestOversizedInputRejection verifies that oversized inputs are rejected.
 func TestOversizedInputRejection(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			return &model.Portfolio{
 				ID:   "test-id",
 				Name: in.Name,
@@ -179,7 +179,7 @@ func TestOversizedInputRejection(t *testing.T) {
 		c.Next()
 	})
 
-	handler.RegisterRoutes(router)
+	handler.RegisterRoutes(&router.RouterGroup)
 
 	tests := []struct {
 		name     string
@@ -232,34 +232,4 @@ func TestOversizedInputRejection(t *testing.T) {
 	}
 }
 
-// Mock services for testing
-type mockPortfolioService struct {
-	createFn func(userID string, in model.CreatePortfolioInput) (*model.Portfolio, error)
-	listFn   func(userID string) ([]*model.Portfolio, error)
-}
-
-func (m *mockPortfolioService) Create(userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
-	if m.createFn != nil {
-		return m.createFn(userID, in)
-	}
-	return &model.Portfolio{}, nil
-}
-
-func (m *mockPortfolioService) GetByID(userID, portfolioID string) (*model.Portfolio, error) {
-	return &model.Portfolio{}, nil
-}
-
-func (m *mockPortfolioService) List(userID string) ([]*model.Portfolio, error) {
-	if m.listFn != nil {
-		return m.listFn(userID)
-	}
-	return nil, nil
-}
-
-func (m *mockPortfolioService) Update(userID, portfolioID string, in model.UpdatePortfolioInput) (*model.Portfolio, error) {
-	return &model.Portfolio{}, nil
-}
-
-func (m *mockPortfolioService) Delete(userID, portfolioID string) error {
-	return nil
-}
+// (mockPortfolioService definition removed; use the shared version from mock_portfolio_service_test.go)
