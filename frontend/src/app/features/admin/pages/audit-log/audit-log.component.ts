@@ -10,7 +10,6 @@ import { FormsModule } from '@angular/forms';
 import { TableModule, Table } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { CalendarModule } from 'primeng/calendar';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
@@ -26,7 +25,6 @@ import { AuditLogFilter } from '../../models/admin.model';
     TableModule,
     ButtonModule,
     InputTextModule,
-    CalendarModule,
     ToastModule,
   ],
   providers: [MessageService],
@@ -43,7 +41,8 @@ import { AuditLogFilter } from '../../models/admin.model';
           <input
             pInputText
             type="text"
-            [(ngModel)]="filterAction()"
+            [ngModel]="filterAction()"
+            (ngModelChange)="filterAction.set($event)"
             placeholder="e.g. role_change"
             class="w-full"
           />
@@ -51,22 +50,24 @@ import { AuditLogFilter } from '../../models/admin.model';
 
         <div class="col-12 md:col-4">
           <label class="block text-sm font-medium mb-2">From Date</label>
-          <p-calendar
-            [(ngModel)]="filterFrom()"
-            dateFormat="yy-mm-dd"
-            [showTime]="true"
-            [showSeconds]="true"
-          ></p-calendar>
+          <input
+            pInputText
+            type="datetime-local"
+            [ngModel]="formatDateForInput(filterFrom())"
+            (ngModelChange)="filterFrom.set(parseDateFromInput($event))"
+            class="w-full"
+          />
         </div>
 
         <div class="col-12 md:col-4">
           <label class="block text-sm font-medium mb-2">To Date</label>
-          <p-calendar
-            [(ngModel)]="filterTo()"
-            dateFormat="yy-mm-dd"
-            [showTime]="true"
-            [showSeconds]="true"
-          ></p-calendar>
+          <input
+            pInputText
+            type="datetime-local"
+            [ngModel]="formatDateForInput(filterTo())"
+            (ngModelChange)="filterTo.set(parseDateFromInput($event))"
+            class="w-full"
+          />
         </div>
 
         <div class="col-12">
@@ -98,7 +99,6 @@ import { AuditLogFilter } from '../../models/admin.model';
         [totalRecords]="totalRecords()"
         [paginator]="true"
         [rows]="25"
-        responsiveLayout="scroll"
         [tableStyle]="{ 'min-width': '50rem' }"
       >
         <ng-template pTemplate="header">
@@ -203,5 +203,14 @@ export class AuditLogComponent {
     if (this.table) {
       this.table.exportCSV();
     }
+  }
+
+  formatDateForInput(date: Date | null): string {
+    if (!date) return '';
+    return date.toISOString().slice(0, 16);
+  }
+
+  parseDateFromInput(input: string): Date {
+    return new Date(input);
   }
 }

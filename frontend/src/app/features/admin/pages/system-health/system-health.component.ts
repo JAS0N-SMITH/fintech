@@ -137,12 +137,12 @@ export class SystemHealthComponent implements OnInit {
 
   getStatusSeverity(
     status: 'healthy' | 'unhealthy' | 'unavailable'
-  ): string {
+  ): 'success' | 'warn' | 'danger' | 'info' {
     switch (status) {
       case 'healthy':
         return 'success';
       case 'unhealthy':
-        return 'warning';
+        return 'warn';
       case 'unavailable':
         return 'danger';
       default:

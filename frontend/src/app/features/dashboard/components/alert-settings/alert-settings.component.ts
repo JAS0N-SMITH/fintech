@@ -1,13 +1,13 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
-import { Dialog } from 'primeng/dialog';
-import { Select } from 'primeng/select';
-import { InputNumber } from 'primeng/inputnumber';
-import { Table } from 'primeng/table';
-import { AutoComplete } from 'primeng/autocomplete';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { TableModule } from 'primeng/table';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { PriceAlertService } from '../../../../core/alerts/price-alert.service';
 import { UserPreferencesService } from '../../../../core/user-preferences.service';
@@ -24,13 +24,13 @@ import type { PortfolioAlertThreshold, AlertDirection } from '../../../../core/a
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    Button,
-    Card,
-    Dialog,
-    Select,
-    InputNumber,
-    Table,
-    AutoComplete,
+    ButtonModule,
+    CardModule,
+    DialogModule,
+    SelectModule,
+    InputNumberModule,
+    TableModule,
+    AutoCompleteModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -72,7 +72,6 @@ import type { PortfolioAlertThreshold, AlertDirection } from '../../../../core/a
           [rows]="10"
           [paginator]="true"
           [globalFilterFields]="['type', 'symbol']"
-          responsiveLayout="scroll"
         >
           <ng-template pTemplate="header">
             <tr>
@@ -120,7 +119,8 @@ import type { PortfolioAlertThreshold, AlertDirection } from '../../../../core/a
 
       <!-- Add/Edit Threshold Dialog -->
       <p-dialog
-        [(visible)]="isDialogOpen"
+        [visible]="isDialogOpen()"
+        (visibleChange)="isDialogOpen.set($event)"
         [header]="'Add Alert Threshold'"
         [modal]="true"
         [style]="{ width: '50vw' }"
@@ -142,18 +142,20 @@ import type { PortfolioAlertThreshold, AlertDirection } from '../../../../core/a
           </div>
 
           <!-- Symbol (conditional) -->
-          <div *ngIf="thresholdForm.get('type')?.value === 'position_gain_loss'">
-            <label for="symbol" class="block text-sm font-medium mb-2">Symbol</label>
-            <p-autoComplete
-              id="symbol"
-              formControlName="symbol"
-              [suggestions]="filteredSymbols()"
-              (completeMethod)="onSymbolSearch($event)"
-              placeholder="AAPL, MSFT, etc."
-              class="w-full"
-              field="symbol"
-            />
-          </div>
+          @if (thresholdForm.get('type')?.value === 'position_gain_loss') {
+            <div>
+              <label for="symbol" class="block text-sm font-medium mb-2">Symbol</label>
+              <p-autoComplete
+                id="symbol"
+                formControlName="symbol"
+                [suggestions]="filteredSymbols()"
+                (completeMethod)="onSymbolSearch($event)"
+                placeholder="AAPL, MSFT, etc."
+                class="w-full"
+                field="symbol"
+              />
+            </div>
+          }
 
           <!-- Threshold Percentage -->
           <div>

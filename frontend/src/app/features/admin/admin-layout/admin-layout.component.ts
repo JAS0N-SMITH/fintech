@@ -4,15 +4,15 @@ import {
   signal,
   inject,
 } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { MenuItem } from 'primeng/api';
-import { MenuModule } from 'primeng/menu';
+import { Menu } from 'primeng/menu';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, MenuModule],
+  imports: [CommonModule, RouterOutlet, Menu],
   template: `
     <div class="flex h-screen bg-gray-100">
       <!-- Admin Sidebar -->

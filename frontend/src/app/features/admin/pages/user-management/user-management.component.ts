@@ -10,10 +10,8 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
-import { TooltipModule } from 'primeng/tooltip';
 
 import { AdminService } from '../../services/admin.service';
 import { AdminUser } from '../../models/admin.model';
@@ -27,9 +25,7 @@ import { AdminUser } from '../../models/admin.model';
     TableModule,
     ButtonModule,
     DialogModule,
-    DropdownModule,
     ToastModule,
-    TooltipModule,
   ],
   providers: [MessageService],
   template: `
@@ -41,10 +37,9 @@ import { AdminUser } from '../../models/admin.model';
       <p-table
         [value]="adminService.users()"
         [loading]="adminService.loading()"
-        responsiveLayout="scroll"
         [paginator]="true"
         [rows]="25"
-        [totalRecords]="totalUsers"
+        [totalRecords]="totalUsers()"
       >
         <ng-template pTemplate="header">
           <tr>
@@ -85,8 +80,8 @@ import { AdminUser } from '../../models/admin.model';
                 type="button"
                 icon="pi pi-lock"
                 class="p-button-sm p-button-rounded p-button-secondary"
-                pTooltip="Coming soon"
-                tooltipPosition="top"
+                title="Coming soon"
+                disabled
               ></button>
             </td>
           </tr>
@@ -96,20 +91,23 @@ import { AdminUser } from '../../models/admin.model';
 
     <!-- Role Change Dialog -->
     <p-dialog
-      [(visible)]="showRoleDialog()"
+      [visible]="showRoleDialog()"
+      (visibleChange)="showRoleDialog.set($event)"
       [header]="'Change Role: ' + selectedUser()?.email"
       [modal]="true"
       [style]="{ width: '50vw' }"
     >
       <div class="grid grid-cols-12 gap-4 mb-4">
-        <label class="col-12 font-bold">New Role</label>
-        <p-dropdown
-          class="col-12"
-          [(ngModel)]="newRole()"
-          [options]="roleOptions"
-          optionLabel="label"
-          optionValue="value"
-        ></p-dropdown>
+        <label for="role-select" class="col-12 font-bold">New Role</label>
+        <select
+          id="role-select"
+          class="col-12 px-3 py-2 border rounded"
+          [ngModel]="newRole()"
+          (ngModelChange)="newRole.set($event)"
+        >
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
       </div>
 
       <ng-template pTemplate="footer">
