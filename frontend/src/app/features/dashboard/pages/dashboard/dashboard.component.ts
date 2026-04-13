@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ChartModule } from 'primeng/chart';
 import { AllocationChartComponent } from '../../components/allocation-chart/allocation-chart.component';
+import { PortfolioPerformanceChartComponent } from '../../components/portfolio-performance-chart/portfolio-performance-chart.component';
 import { PortfolioService } from '../../../portfolio/services/portfolio.service';
 import { TransactionService, deriveHoldings, enrichHoldingsWithPrices } from '../../../portfolio/services/transaction.service';
 import { TickerStateService } from '../../../../core/ticker-state.service';
@@ -40,6 +41,7 @@ import type { Portfolio } from '../../../portfolio/models/portfolio.model';
     TagModule,
     ChartModule,
     AllocationChartComponent,
+    PortfolioPerformanceChartComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
@@ -54,7 +56,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly isLoading = signal(false);
 
   /** All transactions across all portfolios. */
-  private readonly allTransactions = signal<any[]>([]);
+  readonly allTransactions = signal<any[]>([]);
 
   /** All holdings derived from all transactions, aggregated by symbol. */
   readonly allHoldings = computed(() => {

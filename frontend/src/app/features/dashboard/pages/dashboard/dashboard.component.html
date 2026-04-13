@@ -103,19 +103,13 @@
         <app-allocation-chart [holdings]="enrichedHoldings()" />
       </p-card>
 
-      <!-- Performance Chart (placeholder) -->
-      <p-card>
-        <ng-template pTemplate="header">
-          <div class="bg-surface-100 dark:bg-surface-800 p-4">
-            <h3 class="font-semibold text-surface-900 dark:text-surface-50">
-              Portfolio Performance (1M)
-            </h3>
-          </div>
-        </ng-template>
-        <div class="h-64 flex items-center justify-center text-surface-500">
-          <p>Coming in Phase 7</p>
-        </div>
-      </p-card>
+      <!-- Performance Chart -->
+      <div class="rounded-lg border border-surface-200 dark:border-surface-700
+                  bg-white dark:bg-surface-900 shadow overflow-hidden">
+        <app-portfolio-performance-chart
+          [transactions]="allTransactions()"
+        />
+      </div>
     </div>
   }
 

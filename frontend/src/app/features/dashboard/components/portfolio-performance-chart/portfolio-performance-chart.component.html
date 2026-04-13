@@ -1,0 +1,52 @@
+<div class="flex flex-col h-full">
+  <!-- Header: Title + Timeframe Tabs -->
+  <div class="flex items-center justify-between p-4 bg-surface-100 dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700">
+    <h3 class="font-semibold text-surface-900 dark:text-surface-50">
+      Portfolio Performance
+    </h3>
+    <div class="flex gap-1">
+      @for (tf of timeframeOptions; track tf) {
+        <button
+          (click)="selectTimeframe(tf)"
+          [class.bg-primary-600]="selectedTimeframe() === tf"
+          [class.text-white]="selectedTimeframe() === tf"
+          class="px-3 py-1 text-sm rounded font-medium
+                 text-surface-600 dark:text-surface-400
+                 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+          [attr.aria-pressed]="selectedTimeframe() === tf"
+        >
+          {{ tf }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="flex-1 p-4">
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="h-64 flex items-center justify-center">
+        <p class="text-surface-500 dark:text-surface-400 text-sm animate-pulse">
+          Loading performance data...
+        </p>
+      </div>
+    } @else if (isEmpty()) {
+      <!-- Empty State -->
+      <div class="h-64 flex items-center justify-center">
+        <p class="text-surface-500 dark:text-surface-400 text-sm">
+          No transactions found. Add transactions to see performance.
+        </p>
+      </div>
+    } @else if (hasError()) {
+      <!-- Error State -->
+      <div class="h-64 flex items-center justify-center">
+        <p class="text-red-600 dark:text-red-400 text-sm">
+          Failed to load performance data. Please try again.
+        </p>
+      </div>
+    } @else {
+      <!-- Chart Container -->
+      <div #chartContainer class="w-full h-64 rounded bg-white dark:bg-surface-900"></div>
+    }
+  </div>
+</div>

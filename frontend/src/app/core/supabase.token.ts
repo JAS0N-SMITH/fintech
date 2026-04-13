@@ -3,29 +3,19 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
 /**
- * In-memory storage adapter for the Supabase client.
+ * Injection token for the Supabase client. Inject this instead of calling createClient directly.
  *
- * Prevents access and refresh tokens from being written to localStorage.
- * Tokens live only in this map for the lifetime of the page session.
+ * Session persistence: Supabase uses its default localStorage adapter so that the refresh token
+ * survives page reloads. The access token is short-lived (15 min) and refreshed automatically.
  *
- * TODO(Phase 3): Replace refresh token persistence with an HTTP-only cookie
- * via a Go /auth/refresh proxy endpoint so it survives page reloads securely.
+ * TODO(Phase 3): Replace with an HTTP-only cookie via a Go /auth/refresh proxy endpoint
+ * to eliminate localStorage entirely and meet the stricter token storage rule.
  */
-const memoryStorage = new Map<string, string>();
-
-const inMemoryStorageAdapter = {
-  getItem: (key: string): string | null => memoryStorage.get(key) ?? null,
-  setItem: (key: string, value: string): void => { memoryStorage.set(key, value); },
-  removeItem: (key: string): void => { memoryStorage.delete(key); },
-};
-
-/** Injection token for the Supabase client. Inject this instead of calling createClient directly. */
 export const SUPABASE_CLIENT = new InjectionToken<SupabaseClient>('SupabaseClient', {
   providedIn: 'root',
   factory: () =>
     createClient(environment.supabaseUrl, environment.supabaseAnonKey, {
       auth: {
-        storage: inMemoryStorageAdapter,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
