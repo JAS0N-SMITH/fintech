@@ -55,15 +55,22 @@ func jwksServerFor(t *testing.T, pub *ecdsa.PublicKey) *httptest.Server {
 		copy(import64[32-len(b):], b)
 		return encodeB64(import64)
 	}
-	xBytes := pub.X.Bytes()
-	yBytes := pub.Y.Bytes()
+	raw, err := pub.Bytes()
+	if err != nil {
+		t.Fatalf("encode public key: %v", err)
+	}
+	if len(raw) != 65 || raw[0] != 0x04 {
+		t.Fatalf("unexpected uncompressed public key format")
+	}
+	xBytes := raw[1:33]
+	yBytes := raw[33:65]
 
 	body := `{"keys":[{"kty":"EC","alg":"ES256","crv":"P-256","use":"sig","x":"` +
 		import64(xBytes) + `","y":"` + import64(yBytes) + `"}]}`
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(body))
+		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(srv.Close)
 	return srv
@@ -302,7 +309,7 @@ func TestRequireAuth_MissingSubjectClaim(t *testing.T) {
 
 func TestRequireAuth_JWKSEndpointError(t *testing.T) {
 	// Point at a server that returns 500.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	t.Cleanup(srv.Close)
@@ -329,9 +336,9 @@ func TestRequireAuth_JWKSEndpointError(t *testing.T) {
 
 func TestRequireAuth_JWKSMissingKey(t *testing.T) {
 	// JWKS endpoint returns valid JSON but no ES256 key.
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"keys":[]}`))
+		_, _ = w.Write([]byte(`{"keys":[]}`))
 	}))
 	t.Cleanup(srv.Close)
 

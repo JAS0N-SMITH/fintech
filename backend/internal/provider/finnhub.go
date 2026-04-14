@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -48,8 +47,8 @@ type finnhubQuoteResponse struct {
 	DayLow        float64 `json:"l"`
 	Open          float64 `json:"o"`
 	PreviousClose float64 `json:"pc"`
-	Volume        int64   `json:"v"`  // volume (note: not always present on free tier)
-	Timestamp     int64   `json:"t"`  // Unix timestamp
+	Volume        int64   `json:"v"` // volume (note: not always present on free tier)
+	Timestamp     int64   `json:"t"` // Unix timestamp
 }
 
 // GetQuote fetches a full market quote for the given symbol from Finnhub REST API.
@@ -66,7 +65,9 @@ func (p *FinnhubProvider) GetQuote(ctx context.Context, symbol string) (*model.Q
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -112,12 +113,12 @@ func (p *FinnhubProvider) GetQuote(ctx context.Context, symbol string) (*model.Q
 
 // finnhubResolution maps app Timeframe values to Finnhub resolution strings.
 var finnhubResolution = map[model.Timeframe]string{
-	model.Timeframe1D:  "5",    // 5-minute candles for intraday
-	model.Timeframe1W:  "60",   // 1-hour candles for 1 week
-	model.Timeframe1M:  "D",    // daily candles for 1 month
-	model.Timeframe3M:  "D",    // daily candles for 3 months
-	model.Timeframe1Y:  "W",    // weekly candles for 1 year
-	model.TimeframeAll: "M",    // monthly candles for all time
+	model.Timeframe1D:  "5",  // 5-minute candles for intraday
+	model.Timeframe1W:  "60", // 1-hour candles for 1 week
+	model.Timeframe1M:  "D",  // daily candles for 1 month
+	model.Timeframe3M:  "D",  // daily candles for 3 months
+	model.Timeframe1Y:  "W",  // weekly candles for 1 year
+	model.TimeframeAll: "M",  // monthly candles for all time
 }
 
 // finnhubCandleResponse maps the Finnhub /stock/candle endpoint JSON response.
@@ -156,7 +157,9 @@ func (p *FinnhubProvider) GetHistoricalBars(ctx context.Context, symbol string, 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -222,7 +225,9 @@ func (p *FinnhubProvider) StreamPrices(ctx context.Context, symbols []string, ha
 	if err != nil {
 		return fmt.Errorf("%w: dial: %s", ErrProviderUnavailable, err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// Subscribe to each symbol.
 	for _, sym := range symbols {
@@ -281,14 +286,3 @@ func (p *FinnhubProvider) HealthCheck(ctx context.Context) error {
 
 // Compile-time interface compliance check.
 var _ MarketDataProvider = (*FinnhubProvider)(nil)
-
-// finnhubResolutionString is exported for test inspection.
-func finnhubResolutionString(tf model.Timeframe) (string, bool) {
-	r, ok := finnhubResolution[tf]
-	return r, ok
-}
-
-// formatTimestamp converts a Unix timestamp string (used in test assertions).
-func formatTimestamp(unix int64) string {
-	return strconv.FormatInt(unix, 10)
-}

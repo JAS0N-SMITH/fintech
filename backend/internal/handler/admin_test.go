@@ -63,7 +63,8 @@ func adminRouter(svc *mockAdminService, userID, role string) *gin.Engine {
 	})
 
 	h := NewAdminHandler(svc)
-	h.RegisterRoutes(&r.RouterGroup)
+	adminGroup := r.Group("/admin")
+	h.RegisterRoutes(adminGroup)
 	return r
 }
 

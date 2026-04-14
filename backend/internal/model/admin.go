@@ -50,8 +50,8 @@ type AuditLogList struct {
 
 // HealthStatus represents the health of system components.
 type HealthStatus struct {
-	DB              string    `json:"db"`
-	FinnhubAPI      string    `json:"finnhub_api"`
-	WebSocketCount  int       `json:"websocket_count"`
-	Timestamp       time.Time `json:"timestamp"`
+	DB             string    `json:"db"`
+	FinnhubAPI     string    `json:"finnhub_api"`
+	WebSocketCount int       `json:"websocket_count"`
+	Timestamp      time.Time `json:"timestamp"`
 }

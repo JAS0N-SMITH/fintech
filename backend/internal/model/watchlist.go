@@ -13,13 +13,13 @@ type Watchlist struct {
 
 // WatchlistItem represents a single ticker symbol on a watchlist.
 type WatchlistItem struct {
-	ID          string     `json:"id"`
-	WatchlistID string     `json:"watchlist_id"`
-	Symbol      string     `json:"symbol"`
-	TargetPrice *float64   `json:"target_price,omitempty"`
-	Notes       string     `json:"notes,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          string    `json:"id"`
+	WatchlistID string    `json:"watchlist_id"`
+	Symbol      string    `json:"symbol"`
+	TargetPrice *float64  `json:"target_price,omitempty"`
+	Notes       string    `json:"notes,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // CreateWatchlistInput is the request body for creating a new watchlist.

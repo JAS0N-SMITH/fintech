@@ -18,8 +18,8 @@ import (
 // --- mock service ---
 
 type mockMarketDataService struct {
-	getQuoteFn           func(ctx context.Context, symbol string) (*model.Quote, error)
-	getHistoricalBarsFn  func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
+	getQuoteFn          func(ctx context.Context, symbol string) (*model.Quote, error)
+	getHistoricalBarsFn func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
 }
 
 func (m *mockMarketDataService) GetQuote(ctx context.Context, symbol string) (*model.Quote, error) {
@@ -179,7 +179,9 @@ func TestMarketDataHandler_GetQuotesBatch(t *testing.T) {
 			t.Errorf("status = %d, want 200", w.Code)
 		}
 		var result map[string]*model.Quote
-		json.NewDecoder(w.Body).Decode(&result)
+		if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
 		if result["AAPL"] == nil {
 			t.Error("expected AAPL in result")
 		}

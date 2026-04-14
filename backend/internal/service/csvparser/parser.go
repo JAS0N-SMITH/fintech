@@ -82,7 +82,7 @@ func validateSymbol(symbol string) error {
 		return fmt.Errorf("symbol must be 1-20 characters")
 	}
 	for _, ch := range symbol {
-		if !((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '-') {
+		if (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '.' && ch != '-' {
 			return fmt.Errorf("symbol contains invalid characters")
 		}
 	}
@@ -93,11 +93,11 @@ func validateSymbol(symbol string) error {
 func parseTransactionDate(dateStr string) (time.Time, error) {
 	dateStr = strings.TrimSpace(dateStr)
 	formats := []string{
-		"2006-01-02",       // YYYY-MM-DD
-		"01/02/2006",       // MM/DD/YYYY
-		"01/02/06",         // MM/DD/YY
-		"January 2, 2006",  // Month DD, YYYY
-		"Jan 2, 2006",      // Mon DD, YYYY
+		"2006-01-02",      // YYYY-MM-DD
+		"01/02/2006",      // MM/DD/YYYY
+		"01/02/06",        // MM/DD/YY
+		"January 2, 2006", // Month DD, YYYY
+		"Jan 2, 2006",     // Mon DD, YYYY
 	}
 	for _, fmt := range formats {
 		if t, err := time.Parse(fmt, dateStr); err == nil {

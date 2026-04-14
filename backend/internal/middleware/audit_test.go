@@ -23,19 +23,19 @@ func (m *mockAuditService) RecordAuditEvent(ctx context.Context, entry model.Aud
 	return nil
 }
 
-func (m *mockAuditService) ListUsers(ctx context.Context, page, pageSize int) (*model.AdminUserList, error) {
+func (m *mockAuditService) ListUsers(_ context.Context, _, _ int) (*model.AdminUserList, error) {
 	return nil, nil
 }
 
-func (m *mockAuditService) UpdateUserRole(ctx context.Context, adminID, targetID, newRole string) (*model.AdminUser, error) {
+func (m *mockAuditService) UpdateUserRole(_ context.Context, _, _, _ string) (*model.AdminUser, error) {
 	return nil, nil
 }
 
-func (m *mockAuditService) ListAuditLog(ctx context.Context, page, pageSize int) (*model.AuditLogList, error) {
+func (m *mockAuditService) ListAuditLog(_ context.Context, _, _ int) (*model.AuditLogList, error) {
 	return nil, nil
 }
 
-func (m *mockAuditService) GetSystemHealth(ctx context.Context) (*model.HealthStatus, error) {
+func (m *mockAuditService) GetSystemHealth(_ context.Context) (*model.HealthStatus, error) {
 	return nil, nil
 }
 
@@ -88,7 +88,7 @@ func TestAuditAction_SkipsOnError(t *testing.T) {
 	recordCalled := false
 
 	svc := &mockAuditService{
-		recordFn: func(_ context.Context, entry model.AuditLogEntry) error {
+		recordFn: func(_ context.Context, _ model.AuditLogEntry) error {
 			recordCalled = true
 			return nil
 		},
@@ -124,7 +124,7 @@ func TestAuditAction_SkipsOnServerError(t *testing.T) {
 	recordCalled := false
 
 	svc := &mockAuditService{
-		recordFn: func(_ context.Context, entry model.AuditLogEntry) error {
+		recordFn: func(_ context.Context, _ model.AuditLogEntry) error {
 			recordCalled = true
 			return nil
 		},

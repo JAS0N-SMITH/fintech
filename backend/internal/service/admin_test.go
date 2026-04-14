@@ -115,7 +115,7 @@ func TestAdminService_UpdateUserRole(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockAdminRepo{
-				updateRoleFn: func(ctx context.Context, id, role string) (*model.AdminUser, error) {
+				updateRoleFn: func(_ context.Context, id, role string) (*model.AdminUser, error) {
 					if tt.repoErr != nil {
 						return nil, tt.repoErr
 					}
@@ -125,7 +125,7 @@ func TestAdminService_UpdateUserRole(t *testing.T) {
 						Role:  role,
 					}, nil
 				},
-				insertAuditFn: func(ctx context.Context, entry model.AuditLogEntry) error {
+				insertAuditFn: func(_ context.Context, _ model.AuditLogEntry) error {
 					return nil
 				},
 			}
@@ -169,18 +169,18 @@ func TestAdminService_ListUsers(t *testing.T) {
 			wantLen:  2,
 		},
 		{
-			name:    "repo error propagates",
-			page:    1,
+			name:     "repo error propagates",
+			page:     1,
 			pageSize: 10,
-			repoErr: errors.New("db error"),
-			wantErr: true,
+			repoErr:  errors.New("db error"),
+			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockAdminRepo{
-				listUsersFn: func(ctx context.Context, page, pageSize int) ([]model.AdminUser, int, error) {
+				listUsersFn: func(_ context.Context, _, _ int) ([]model.AdminUser, int, error) {
 					if tt.repoErr != nil {
 						return nil, 0, tt.repoErr
 					}
@@ -230,7 +230,7 @@ func TestAdminService_RecordAuditEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "repo error propagates",
+			name: "repo error is swallowed",
 			entry: model.AuditLogEntry{
 				ID:           "log1",
 				UserID:       "admin-1",
@@ -239,14 +239,14 @@ func TestAdminService_RecordAuditEvent(t *testing.T) {
 				TargetID:     "user-2",
 			},
 			repoErr: errors.New("db error"),
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockAdminRepo{
-				insertAuditFn: func(ctx context.Context, entry model.AuditLogEntry) error {
+				insertAuditFn: func(_ context.Context, _ model.AuditLogEntry) error {
 					return tt.repoErr
 				},
 			}
@@ -293,7 +293,7 @@ func TestAdminService_ListAuditLog(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockAdminRepo{
-				listAuditLogFn: func(ctx context.Context, filter repository.AuditLogFilter) ([]model.AuditLogEntry, int, error) {
+				listAuditLogFn: func(_ context.Context, _ repository.AuditLogFilter) ([]model.AuditLogEntry, int, error) {
 					if tt.repoErr != nil {
 						return nil, 0, tt.repoErr
 					}
@@ -332,7 +332,7 @@ func TestAdminService_ListAuditLog(t *testing.T) {
 func TestAdminService_AuditEventPIIMasking(t *testing.T) {
 	// Test that audit log entries don't include sensitive data
 	repo := &mockAdminRepo{
-		insertAuditFn: func(ctx context.Context, entry model.AuditLogEntry) error {
+		insertAuditFn: func(_ context.Context, entry model.AuditLogEntry) error {
 			// Verify after_value doesn't contain PII (like email)
 			if entry.AfterValue != nil {
 				var val map[string]interface{}

@@ -85,19 +85,19 @@ func (m *mockWatchlistRepo) AddItem(ctx context.Context, watchlistID string, in 
 	return item, nil
 }
 
-func (m *mockWatchlistRepo) GetItem(ctx context.Context, watchlistID, symbol string) (*model.WatchlistItem, error) {
+func (m *mockWatchlistRepo) GetItem(_ context.Context, _, _ string) (*model.WatchlistItem, error) {
 	return nil, nil
 }
 
-func (m *mockWatchlistRepo) ListItems(ctx context.Context, watchlistID string) ([]*model.WatchlistItem, error) {
+func (m *mockWatchlistRepo) ListItems(_ context.Context, _ string) ([]*model.WatchlistItem, error) {
 	return []*model.WatchlistItem{}, nil
 }
 
-func (m *mockWatchlistRepo) UpdateItem(ctx context.Context, watchlistID, symbol string, in model.UpdateWatchlistItemInput) (*model.WatchlistItem, error) {
+func (m *mockWatchlistRepo) UpdateItem(_ context.Context, _, _ string, _ model.UpdateWatchlistItemInput) (*model.WatchlistItem, error) {
 	return nil, nil
 }
 
-func (m *mockWatchlistRepo) RemoveItem(ctx context.Context, watchlistID, symbol string) error {
+func (m *mockWatchlistRepo) RemoveItem(_ context.Context, _, _ string) error {
 	return nil
 }
 

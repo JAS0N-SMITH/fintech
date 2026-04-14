@@ -10,10 +10,10 @@ import (
 // MockProvider is a configurable test double for MarketDataProvider.
 // Set the Fn fields to control what each method returns.
 type MockProvider struct {
-	GetQuoteFn           func(ctx context.Context, symbol string) (*model.Quote, error)
-	GetHistoricalBarsFn  func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
-	StreamPricesFn       func(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
-	HealthCheckFn        func(ctx context.Context) error
+	GetQuoteFn          func(ctx context.Context, symbol string) (*model.Quote, error)
+	GetHistoricalBarsFn func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
+	StreamPricesFn      func(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
+	HealthCheckFn       func(ctx context.Context) error
 }
 
 // GetQuote delegates to GetQuoteFn if set, otherwise returns a zero Quote.

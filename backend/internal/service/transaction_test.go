@@ -79,7 +79,7 @@ func (m *mockTransactionRepo) Delete(ctx context.Context, id string) error {
 // Helpers
 // ---------------------------------------------------------------------------
 
-func qty(s string) *decimal.Decimal { d := decimal.RequireFromString(s); return &d }
+func qty(s string) *decimal.Decimal   { d := decimal.RequireFromString(s); return &d }
 func price(s string) *decimal.Decimal { d := decimal.RequireFromString(s); return &d }
 
 func buyInput(symbol, quantity, pricePerShare, total string) model.CreateTransactionInput {

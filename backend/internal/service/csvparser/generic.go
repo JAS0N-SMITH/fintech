@@ -14,7 +14,7 @@ import (
 type GenericParser struct{}
 
 // Detect always returns true (it's a catch-all fallback).
-func (p *GenericParser) Detect(headers []string) bool {
+func (p *GenericParser) Detect(_ []string) bool {
 	return true
 }
 

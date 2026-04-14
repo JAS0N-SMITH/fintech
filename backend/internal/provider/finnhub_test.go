@@ -23,19 +23,19 @@ func TestFinnhubProvider_GetQuote(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		handler    http.HandlerFunc
-		symbol     string
-		wantErr    error
-		wantPrice  float64
-		wantHigh   float64
+		name      string
+		handler   http.HandlerFunc
+		symbol    string
+		wantErr   error
+		wantPrice float64
+		wantHigh  float64
 	}{
 		{
 			name:   "valid symbol returns populated quote",
 			symbol: "AAPL",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(finnhubQuoteResponse{
+				_ = json.NewEncoder(w).Encode(finnhubQuoteResponse{
 					CurrentPrice:  150.25,
 					DayHigh:       152.00,
 					DayLow:        148.50,
@@ -51,17 +51,17 @@ func TestFinnhubProvider_GetQuote(t *testing.T) {
 		{
 			name:   "zero price and zero timestamp returns ErrInvalidSymbol",
 			symbol: "INVALID",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				// Finnhub returns all zeros for unknown symbols
-				json.NewEncoder(w).Encode(finnhubQuoteResponse{})
+				_ = json.NewEncoder(w).Encode(finnhubQuoteResponse{})
 			},
 			wantErr: ErrInvalidSymbol,
 		},
 		{
 			name:   "HTTP 429 returns ErrRateLimited",
 			symbol: "AAPL",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusTooManyRequests)
 			},
 			wantErr: ErrRateLimited,
@@ -69,7 +69,7 @@ func TestFinnhubProvider_GetQuote(t *testing.T) {
 		{
 			name:   "HTTP 403 returns ErrInvalidSymbol",
 			symbol: "BADKEY",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusForbidden)
 			},
 			wantErr: ErrInvalidSymbol,
@@ -77,7 +77,7 @@ func TestFinnhubProvider_GetQuote(t *testing.T) {
 		{
 			name:   "HTTP 500 returns ErrProviderUnavailable",
 			symbol: "AAPL",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 			wantErr: ErrProviderUnavailable,
@@ -85,9 +85,9 @@ func TestFinnhubProvider_GetQuote(t *testing.T) {
 		{
 			name:   "malformed JSON returns ErrProviderUnavailable",
 			symbol: "AAPL",
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`{not valid json`))
+				_, _ = w.Write([]byte(`{not valid json`))
 			},
 			wantErr: ErrProviderUnavailable,
 		},
@@ -145,9 +145,9 @@ func TestFinnhubProvider_GetHistoricalBars(t *testing.T) {
 		{
 			name:      "valid response returns bars",
 			timeframe: model.Timeframe1M,
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(finnhubCandleResponse{
+				_ = json.NewEncoder(w).Encode(finnhubCandleResponse{
 					Close:     []float64{150.0, 151.0},
 					High:      []float64{152.0, 153.0},
 					Low:       []float64{148.0, 149.0},
@@ -162,16 +162,16 @@ func TestFinnhubProvider_GetHistoricalBars(t *testing.T) {
 		{
 			name:      "no_data status returns empty slice",
 			timeframe: model.Timeframe1M,
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(finnhubCandleResponse{Status: "no_data"})
+				_ = json.NewEncoder(w).Encode(finnhubCandleResponse{Status: "no_data"})
 			},
 			wantLen: 0,
 		},
 		{
 			name:      "HTTP 429 returns ErrRateLimited",
 			timeframe: model.Timeframe1M,
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusTooManyRequests)
 			},
 			wantErr: ErrRateLimited,
@@ -179,7 +179,7 @@ func TestFinnhubProvider_GetHistoricalBars(t *testing.T) {
 		{
 			name:      "unknown timeframe returns ErrInvalidSymbol",
 			timeframe: model.Timeframe("INVALID"),
-			handler: func(w http.ResponseWriter, r *http.Request) {
+			handler: func(w http.ResponseWriter, _ *http.Request) {
 				// Should never be called for unknown timeframe
 				w.WriteHeader(http.StatusOK)
 			},

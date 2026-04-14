@@ -32,7 +32,9 @@ func main() {
 		slog.Error("failed to open database", "error", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	if err := db.PingContext(context.Background()); err != nil {
 		slog.Error("failed to ping database", "error", err)
@@ -50,9 +52,20 @@ func main() {
 		command = os.Args[1]
 	}
 
+	allowedCommands := map[string]struct{}{
+		"up":     {},
+		"down":   {},
+		"status": {},
+		"reset":  {},
+	}
+	if _, ok := allowedCommands[command]; !ok {
+		slog.Error("invalid migration command")
+		os.Exit(1)
+	}
+
 	migrationsDir := "migrations"
 	if err := goose.RunContext(context.Background(), command, db, migrationsDir); err != nil {
-		slog.Error("migration failed", "command", command, "error", err)
+		slog.Error("migration failed", "error", err)
 		os.Exit(1)
 	}
 

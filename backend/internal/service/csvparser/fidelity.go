@@ -1,3 +1,4 @@
+// Package csvparser parses brokerage CSV exports into normalized transactions.
 package csvparser
 
 import (

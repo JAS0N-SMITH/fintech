@@ -3,7 +3,6 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"net/http"
 	"regexp"
 
 	"github.com/gin-gonic/gin"
@@ -48,16 +47,4 @@ func newRequestID() string {
 		return "unknown"
 	}
 	return hex.EncodeToString(b)
-}
-
-// statusRecorder wraps gin.ResponseWriter to capture the status code after
-// the handler writes it, for use in logging middleware.
-type statusRecorder struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *statusRecorder) WriteHeader(status int) {
-	r.status = status
-	r.ResponseWriter.WriteHeader(status)
 }

@@ -23,17 +23,17 @@ const (
 
 // Config holds all configuration values for the application.
 type Config struct {
-	Port           string
-	GinMode        string
+	Port            string
+	GinMode         string
 	DatabaseURL     string
 	SupabaseURL     string
-	SupabaseAnonKey string // Used by the Go auth proxy to call Supabase token refresh.
+	SupabaseAnonKey string   // Used by the Go auth proxy to call Supabase token refresh.
 	AllowedOrigins  []string // CORS: exact frontend origins, never wildcard
 	// Rate limits (requests per second)
 	PublicRateLimit int // per-IP, for unauthenticated endpoints
 	AuthRateLimit   int // per-user, for authenticated endpoints
 	// Finnhub market data
-	FinnhubAPIKey string
+	FinnhubAPIKey  string
 	FinnhubBaseURL string
 	FinnhubWSURL   string
 }

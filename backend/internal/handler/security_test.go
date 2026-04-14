@@ -18,7 +18,7 @@ import (
 // are safely escaped and stored as literal text, not executed.
 func TestPortfolioNameSQLInjection(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(_ context.Context, _ string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			// Service layer should have already validated; just store it
 			return &model.Portfolio{
 				ID:   "test-id",
@@ -78,7 +78,9 @@ func TestPortfolioNameSQLInjection(t *testing.T) {
 
 			if tt.wantCode == http.StatusCreated {
 				var resp map[string]interface{}
-				json.Unmarshal(w.Body.Bytes(), &resp)
+				if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+					t.Fatalf("unmarshal response: %v", err)
+				}
 
 				// Verify the name was stored literally, not executed
 				if data, ok := resp["data"].(map[string]interface{}); ok {
@@ -95,7 +97,7 @@ func TestPortfolioNameSQLInjection(t *testing.T) {
 // are safely stored as literal text.
 func TestPortfolioNameXSS(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(_ context.Context, _ string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			return &model.Portfolio{
 				ID:   "test-id",
 				Name: in.Name,
@@ -151,7 +153,9 @@ func TestPortfolioNameXSS(t *testing.T) {
 
 			// Payload should be stored literally
 			var resp map[string]interface{}
-			json.Unmarshal(w.Body.Bytes(), &resp)
+			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("unmarshal response: %v", err)
+			}
 			if data, ok := resp["data"].(map[string]interface{}); ok {
 				if name, ok := data["name"].(string); ok && name != tt.payload {
 					t.Errorf("expected name %q, got %q", tt.payload, name)
@@ -164,7 +168,7 @@ func TestPortfolioNameXSS(t *testing.T) {
 // TestOversizedInputRejection verifies that oversized inputs are rejected.
 func TestOversizedInputRejection(t *testing.T) {
 	mockSvc := &mockPortfolioService{
-		createFn: func(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+		createFn: func(_ context.Context, _ string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
 			return &model.Portfolio{
 				ID:   "test-id",
 				Name: in.Name,

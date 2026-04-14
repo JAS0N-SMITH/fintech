@@ -33,11 +33,11 @@ func (m *mockTransactionService) Create(ctx context.Context, callerID, portfolio
 	}, nil
 }
 
-func (m *mockTransactionService) List(ctx context.Context, callerID, portfolioID string) ([]*model.Transaction, error) {
+func (m *mockTransactionService) List(_ context.Context, _, _ string) ([]*model.Transaction, error) {
 	return nil, nil
 }
 
-func (m *mockTransactionService) Delete(ctx context.Context, callerID, transactionID string) error {
+func (m *mockTransactionService) Delete(_ context.Context, _, _ string) error {
 	return nil
 }
 
@@ -57,19 +57,19 @@ func (m *mockPortfolioService) GetByID(ctx context.Context, callerID, portfolioI
 	}, nil
 }
 
-func (m *mockPortfolioService) Create(ctx context.Context, userID string, in model.CreatePortfolioInput) (*model.Portfolio, error) {
+func (m *mockPortfolioService) Create(_ context.Context, _ string, _ model.CreatePortfolioInput) (*model.Portfolio, error) {
 	return nil, nil
 }
 
-func (m *mockPortfolioService) List(ctx context.Context, userID string) ([]*model.Portfolio, error) {
+func (m *mockPortfolioService) List(_ context.Context, _ string) ([]*model.Portfolio, error) {
 	return nil, nil
 }
 
-func (m *mockPortfolioService) Update(ctx context.Context, callerID, portfolioID string, in model.UpdatePortfolioInput) (*model.Portfolio, error) {
+func (m *mockPortfolioService) Update(_ context.Context, _, _ string, _ model.UpdatePortfolioInput) (*model.Portfolio, error) {
 	return nil, nil
 }
 
-func (m *mockPortfolioService) Delete(ctx context.Context, callerID, portfolioID string) error {
+func (m *mockPortfolioService) Delete(_ context.Context, _, _ string) error {
 	return nil
 }
 
@@ -77,9 +77,9 @@ func (m *mockPortfolioService) Delete(ctx context.Context, callerID, portfolioID
 func createCSV(headers []string, rows [][]string) io.Reader {
 	buf := new(bytes.Buffer)
 	w := csv.NewWriter(buf)
-	w.Write(headers)
+	_ = w.Write(headers)
 	for _, row := range rows {
-		w.Write(row)
+		_ = w.Write(row)
 	}
 	w.Flush()
 	return buf
@@ -147,8 +147,8 @@ func TestImportServicePreview(t *testing.T) {
 					{"01/15/2024", "AAPL", "Buy", "10", "150.00", "$1,500.00"},
 				},
 			),
-			brokerage: "fidelity",
-			wantErr:   true,
+			brokerage:  "fidelity",
+			wantErr:    true,
 			wantErrMsg: "portfolio",
 		},
 	}
@@ -160,7 +160,7 @@ func TestImportServicePreview(t *testing.T) {
 
 			// For portfolio not found case
 			if tt.wantErr && tt.wantErrMsg == "portfolio" {
-				mockPortSvc.getByIDFunc = func(ctx context.Context, callerID, portfolioID string) (*model.Portfolio, error) {
+				mockPortSvc.getByIDFunc = func(_ context.Context, _, _ string) (*model.Portfolio, error) {
 					return nil, model.NewNotFound("portfolio")
 				}
 			}
@@ -204,12 +204,12 @@ func TestImportServiceConfirm(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 
 	tests := []struct {
-		name          string
-		transactions  []model.CreateTransactionInput
-		createFunc    func(ctx context.Context, callerID, portfolioID string, in model.CreateTransactionInput) (*model.Transaction, error)
-		wantCreated   int
-		wantFailed    int
-		wantErr       bool
+		name         string
+		transactions []model.CreateTransactionInput
+		createFunc   func(ctx context.Context, callerID, portfolioID string, in model.CreateTransactionInput) (*model.Transaction, error)
+		wantCreated  int
+		wantFailed   int
+		wantErr      bool
 	}{
 		{
 			name: "all transactions succeed",
@@ -255,7 +255,7 @@ func TestImportServiceConfirm(t *testing.T) {
 					TotalAmount:     dec("16000.00"),
 				},
 			},
-			createFunc: func(ctx context.Context, callerID, portfolioID string, in model.CreateTransactionInput) (*model.Transaction, error) {
+			createFunc: func(_ context.Context, _, _ string, in model.CreateTransactionInput) (*model.Transaction, error) {
 				// First succeeds, second fails
 				if in.TransactionType == model.TransactionTypeSell {
 					return nil, model.NewConflict("insufficient holdings")
@@ -266,10 +266,10 @@ func TestImportServiceConfirm(t *testing.T) {
 			wantFailed:  1,
 		},
 		{
-			name:          "empty list",
-			transactions:  []model.CreateTransactionInput{},
-			wantCreated:   0,
-			wantFailed:    0,
+			name:         "empty list",
+			transactions: []model.CreateTransactionInput{},
+			wantCreated:  0,
+			wantFailed:   0,
 		},
 	}
 
@@ -326,7 +326,7 @@ func TestImportServiceConfirmPortfolioNotFound(t *testing.T) {
 
 	mockTxnSvc := &mockTransactionService{}
 	mockPortSvc := &mockPortfolioService{
-		getByIDFunc: func(ctx context.Context, callerID, portfolioID string) (*model.Portfolio, error) {
+		getByIDFunc: func(_ context.Context, _, _ string) (*model.Portfolio, error) {
 			return nil, model.NewNotFound("portfolio")
 		},
 	}

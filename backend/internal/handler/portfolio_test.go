@@ -207,11 +207,11 @@ func TestPortfolioHandler_Create(t *testing.T) {
 
 func TestPortfolioHandler_GetByID(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		portfolioID string
-		svcReturn  *model.Portfolio
-		svcErr     error
-		wantStatus int
+		svcReturn   *model.Portfolio
+		svcErr      error
+		wantStatus  int
 	}{
 		{
 			name:        "owner gets portfolio",

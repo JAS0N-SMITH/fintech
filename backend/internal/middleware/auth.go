@@ -197,7 +197,9 @@ func fetchECPublicKey(ctx context.Context, jwksURL string) (*ecdsa.PublicKey, er
 	if err != nil {
 		return nil, fmt.Errorf("fetching jwks: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var result struct {
 		Keys []jwksKey `json:"keys"`

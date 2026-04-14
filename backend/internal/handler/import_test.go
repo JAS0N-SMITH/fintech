@@ -55,14 +55,14 @@ func createMultipartCSV(csv string, brokerage string) (*bytes.Buffer, string) {
 
 	// Add file
 	filePart, _ := writer.CreateFormFile("file", "test.csv")
-	filePart.Write([]byte(csv))
+	_, _ = filePart.Write([]byte(csv))
 
 	// Add brokerage if provided
 	if brokerage != "" {
-		writer.WriteField("brokerage", brokerage)
+		_ = writer.WriteField("brokerage", brokerage)
 	}
 
-	writer.Close()
+	_ = writer.Close()
 	return body, writer.FormDataContentType()
 }
 
@@ -85,16 +85,16 @@ func TestImportHandlerPreview(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:        "successful preview",
-			csvContent:  "Symbol,Date\nAAPL,2024-01-15\n",
-			brokerage:   "fidelity",
-			wantStatus:  http.StatusOK,
-			wantErr:     false,
+			name:       "successful preview",
+			csvContent: "Symbol,Date\nAAPL,2024-01-15\n",
+			brokerage:  "fidelity",
+			wantStatus: http.StatusOK,
+			wantErr:    false,
 			mockFunc: func() (*model.ImportPreview, error) {
 				return &model.ImportPreview{
-					Parsed:  1,
-					Valid:   1,
-					Errors:  []model.ImportError{},
+					Parsed: 1,
+					Valid:  1,
+					Errors: []model.ImportError{},
 					Transactions: []model.CreateTransactionInput{
 						{
 							TransactionType: model.TransactionTypeBuy,
@@ -107,11 +107,11 @@ func TestImportHandlerPreview(t *testing.T) {
 			},
 		},
 		{
-			name:        "preview with errors",
-			csvContent:  "Symbol,Date\nAAPL,2024-01-15\nINVALID,bad\n",
-			brokerage:   "fidelity",
-			wantStatus:  http.StatusOK,
-			wantErr:     false,
+			name:       "preview with errors",
+			csvContent: "Symbol,Date\nAAPL,2024-01-15\nINVALID,bad\n",
+			brokerage:  "fidelity",
+			wantStatus: http.StatusOK,
+			wantErr:    false,
 			mockFunc: func() (*model.ImportPreview, error) {
 				return &model.ImportPreview{
 					Parsed: 2,
@@ -142,7 +142,7 @@ func TestImportHandlerPreview(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := &mockImportService{}
 			if tt.mockFunc != nil {
-				mockSvc.previewFunc = func(ctx context.Context, callerID, portfolioID string, csvData io.Reader, brokerage string) (*model.ImportPreview, error) {
+				mockSvc.previewFunc = func(_ context.Context, _, _ string, _ io.Reader, _ string) (*model.ImportPreview, error) {
 					return tt.mockFunc()
 				}
 			}
@@ -159,7 +159,19 @@ func TestImportHandlerPreview(t *testing.T) {
 			handler.RegisterRoutes(portfolioGroup)
 
 			// Create request
-			body, contentType := createMultipartCSV(tt.csvContent, tt.brokerage)
+			var body *bytes.Buffer
+			var contentType string
+			if tt.name == "missing file" {
+				body = new(bytes.Buffer)
+				writer := multipart.NewWriter(body)
+				if tt.brokerage != "" {
+					_ = writer.WriteField("brokerage", tt.brokerage)
+				}
+				_ = writer.Close()
+				contentType = writer.FormDataContentType()
+			} else {
+				body, contentType = createMultipartCSV(tt.csvContent, tt.brokerage)
+			}
 			req, _ := http.NewRequest("POST", "/portfolios/port-456/import", body)
 			req.Header.Set("Content-Type", contentType)
 
@@ -173,7 +185,9 @@ func TestImportHandlerPreview(t *testing.T) {
 
 			if tt.wantStatus == http.StatusOK {
 				var preview model.ImportPreview
-				json.Unmarshal(w.Body.Bytes(), &preview)
+				if err := json.Unmarshal(w.Body.Bytes(), &preview); err != nil {
+					t.Fatalf("unmarshal preview: %v", err)
+				}
 
 				if preview.Valid != tt.wantValidCount && tt.wantValidCount > 0 {
 					t.Logf("preview: %+v", preview)
@@ -269,7 +283,7 @@ func TestImportHandlerConfirm(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockSvc := &mockImportService{}
 			if tt.mockFunc != nil {
-				mockSvc.confirmFunc = func(ctx context.Context, callerID, portfolioID string, req model.ImportConfirmRequest) (*model.ImportResult, error) {
+				mockSvc.confirmFunc = func(_ context.Context, _, _ string, _ model.ImportConfirmRequest) (*model.ImportResult, error) {
 					return tt.mockFunc()
 				}
 			}
@@ -346,8 +360,8 @@ func TestImportHandlerInvalidFileType(t *testing.T) {
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	filePart, _ := writer.CreateFormFile("file", "test.txt")
-	filePart.Write([]byte("some data"))
-	writer.Close()
+	_, _ = filePart.Write([]byte("some data"))
+	_ = writer.Close()
 
 	req, _ := http.NewRequest("POST", "/portfolios/port-456/import", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())

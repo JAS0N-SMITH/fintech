@@ -184,7 +184,9 @@ func (h *AuthHandler) callSupabaseRefresh(ctx context.Context, refreshToken stri
 	if err != nil {
 		return nil, fmt.Errorf("call supabase: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("supabase returned %d", resp.StatusCode)

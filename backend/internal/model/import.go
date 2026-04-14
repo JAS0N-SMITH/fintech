@@ -4,14 +4,14 @@ import "github.com/shopspring/decimal"
 
 // ImportRow represents a single parsed row from a brokerage CSV.
 type ImportRow struct {
-	Symbol            string
-	TransactionType   TransactionType
-	TransactionDate   string // YYYY-MM-DD format
-	Quantity          *decimal.Decimal
-	PricePerShare     *decimal.Decimal
-	DividendPerShare  *decimal.Decimal
-	TotalAmount       decimal.Decimal
-	Notes             string
+	Symbol           string
+	TransactionType  TransactionType
+	TransactionDate  string // YYYY-MM-DD format
+	Quantity         *decimal.Decimal
+	PricePerShare    *decimal.Decimal
+	DividendPerShare *decimal.Decimal
+	TotalAmount      decimal.Decimal
+	Notes            string
 }
 
 // ImportError represents a parsing or validation error for a single row.

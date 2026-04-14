@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -69,7 +70,7 @@ func (h *ImportHandler) Preview(c *gin.Context) {
 	}
 
 	// Validate file extension (basic check)
-	if file.Filename[len(file.Filename)-4:] != ".csv" {
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".csv") {
 		c.JSON(http.StatusBadRequest, Problem{
 			Status: http.StatusBadRequest,
 			Title:  "Bad Request",
@@ -88,7 +89,9 @@ func (h *ImportHandler) Preview(c *gin.Context) {
 		})
 		return
 	}
-	defer src.Close()
+	defer func() {
+		_ = src.Close()
+	}()
 
 	// Get brokerage param (optional)
 	brokerage := c.DefaultQuery("brokerage", "")

@@ -21,7 +21,7 @@ import (
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
+	CheckOrigin: func(_ *http.Request) bool {
 		// Origin validation is handled by the CORS middleware already applied.
 		// Returning true here allows the upgrade; the CORS middleware has
 		// already rejected non-allowed origins before this point.
@@ -46,8 +46,8 @@ type wsServerMessage struct {
 // set of subscribed symbols; the handler fans in ticks from the provider
 // and fans out only to matching subscribers.
 type WebSocketHandler struct {
-	provider   provider.MarketDataProvider
-	connCount  atomic.Int64
+	provider  provider.MarketDataProvider
+	connCount atomic.Int64
 }
 
 // NewWebSocketHandler returns a WebSocketHandler backed by the given provider.
@@ -91,7 +91,9 @@ func (h *WebSocketHandler) Connect(c *gin.Context) {
 		)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// Track active connections
 	h.connCount.Add(1)
