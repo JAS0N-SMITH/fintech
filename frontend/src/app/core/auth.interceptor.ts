@@ -22,7 +22,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
-/** Returns true only for requests targeting the Go API base URL. */
+/** Returns true only for requests targeting the Go API base URL.
+ * Excludes /auth/session — those endpoints are public and use cookies. */
 function isApiRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.startsWith(environment.apiBaseUrl);
+  return (
+    req.url.startsWith(environment.apiBaseUrl) && !req.url.includes('/auth/session')
+  );
 }
