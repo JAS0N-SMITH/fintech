@@ -25,9 +25,10 @@ const (
 type Config struct {
 	Port           string
 	GinMode        string
-	DatabaseURL    string
-	SupabaseURL    string
-	AllowedOrigins []string // CORS: exact frontend origins, never wildcard
+	DatabaseURL     string
+	SupabaseURL     string
+	SupabaseAnonKey string // Used by the Go auth proxy to call Supabase token refresh.
+	AllowedOrigins  []string // CORS: exact frontend origins, never wildcard
 	// Rate limits (requests per second)
 	PublicRateLimit int // per-IP, for unauthenticated endpoints
 	AuthRateLimit   int // per-user, for authenticated endpoints
@@ -70,6 +71,7 @@ func Load() (*Config, error) {
 		GinMode:         viper.GetString("GIN_MODE"),
 		DatabaseURL:     viper.GetString("DATABASE_URL"),
 		SupabaseURL:     viper.GetString("SUPABASE_URL"),
+		SupabaseAnonKey: viper.GetString("SUPABASE_ANON_KEY"),
 		AllowedOrigins:  origins,
 		PublicRateLimit: viper.GetInt("PUBLIC_RATE_LIMIT"),
 		AuthRateLimit:   viper.GetInt("AUTH_RATE_LIMIT"),
@@ -83,6 +85,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.SupabaseURL == "" {
 		return cfg, fmt.Errorf("SUPABASE_URL is not set")
+	}
+	if cfg.SupabaseAnonKey == "" {
+		return cfg, fmt.Errorf("SUPABASE_ANON_KEY is not set")
 	}
 	if cfg.FinnhubAPIKey == "" {
 		return cfg, fmt.Errorf("FINNHUB_API_KEY is not set")

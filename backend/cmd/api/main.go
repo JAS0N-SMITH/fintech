@@ -30,8 +30,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"golang.org/x/time/rate"
 
-	"github.com/huchknows/fintech/backend/internal/config"
 	_ "github.com/huchknows/fintech/backend/docs" // swaggo generated docs
+	"github.com/huchknows/fintech/backend/internal/config"
 	"github.com/huchknows/fintech/backend/internal/handler"
 	"github.com/huchknows/fintech/backend/internal/middleware"
 	"github.com/huchknows/fintech/backend/internal/provider"
@@ -88,6 +88,7 @@ func main() {
 	wsHandler := handler.NewWebSocketHandler(finnhubProvider)
 	profileHandler := handler.NewProfileHandler(profileSvc)
 	importHandler := handler.NewImportHandler(importSvc)
+	authHandler := handler.NewAuthHandler(cfg.SupabaseURL, cfg.SupabaseAnonKey, cfg.GinMode == "release")
 
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
@@ -105,7 +106,7 @@ func main() {
 	// Swagger UI — development only; in production restrict via NGINX or disable.
 	// Apply security headers to Swagger assets.
 	swagger := r.Group("/swagger")
-	swagger.Use(middleware.SecurityHeaders())
+	swagger.Use(middleware.DocsSecurityHeaders())
 	swagger.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1 routes with API-specific security headers
@@ -117,6 +118,7 @@ func main() {
 	public.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+	authHandler.RegisterRoutes(public)
 
 	// Authenticated routes — Auth middleware + per-user rate limiting.
 	authed := v1.Group("/")
