@@ -220,7 +220,7 @@ describe('TickerDetailComponent — Timeframe API parameter mapping', () => {
       expect(calls.some((call: [string, Timeframe]) => call[0] === 'AAPL' && call[1] === tf)).toBe(
         true,
       );
-    };,
+    },
   );
 });
 

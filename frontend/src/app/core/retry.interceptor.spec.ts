@@ -200,6 +200,6 @@ describe('retryInterceptor', () => {
       httpMock.expectOne(testRequestMatcher).flush({ success: true });
 
       await expect(responsePromise).resolves.toEqual({ success: true });
-    };);
+    });
   });
 });

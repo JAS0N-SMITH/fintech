@@ -1,14 +1,10 @@
 // Vitest setup for Angular testing
 import { getTestBed } from '@angular/core/testing';
-import {
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting,
-} from '@angular/platform-browser-dynamic/testing';
 import { expect, vi } from 'vitest';
 
-// Initialize TestBed for Angular tests
+// Initialize TestBed for Angular tests (jsdom environment)
 try {
-  getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+  getTestBed().initTestEnvironment(undefined as any, undefined as any, {
     teardown: { destroyAfterEach: true },
   });
 } catch (e) {
@@ -46,7 +42,7 @@ const createCompatSpy = () => {
     }
     return out;
   },
-  objectContaining: <T>(sample: Partial<T>) => expect.objectContaining(sample),
+  objectContaining: <T>(sample: Partial<T>) => expect.objectContaining(sample as any),
   stringContaining: (sample: string) => expect.stringContaining(sample),
 };
 
