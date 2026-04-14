@@ -1,48 +1,62 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard.component';
-import { PortfolioService } from '../../services/portfolio.service';
-import { TransactionService } from '../../services/transaction.service';
+import { signal } from '@angular/core';
+import { PortfolioService } from '../../../portfolio/services/portfolio.service';
+import { TransactionService } from '../../../portfolio/services/transaction.service';
 import { TickerStateService } from '../../../../core/ticker-state.service';
 import { of } from 'rxjs';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
-  let portfolioService: jasmine.SpyObj<PortfolioService>;
-  let transactionService: jasmine.SpyObj<TransactionService>;
-  let tickerStateService: jasmine.SpyObj<TickerStateService>;
+  let portfolioService: any;
+  let transactionService: any;
+  let tickerStateService: any;
 
   beforeEach(async () => {
-    const portfolioServiceMock = jasmine.createSpyObj('PortfolioService', ['loadAll'], {
-      portfolios: jasmine.createSpy().and.returnValue([]),
-    });
-    const transactionServiceMock = jasmine.createSpyObj(
-      'TransactionService',
-      ['loadByPortfolio', 'clear'],
-      {
-        transactions: jasmine.createSpy().and.returnValue([]),
-        holdings: jasmine.createSpy().and.returnValue([]),
-      }
-    );
-    const tickerStateServiceMock = jasmine.createSpyObj('TickerStateService', ['subscribe'], {
-      tickers: jasmine.createSpy().and.returnValue({}),
-    });
+    const portfolioServiceMock = {
+      portfolios: signal([]).asReadonly(),
+      loadAll: vi.fn(),
+    };
+    const transactionServiceMock = {
+      transactions: signal([]).asReadonly(),
+      holdings: signal([]).asReadonly(),
+      loadByPortfolio: vi.fn(),
+      clear: vi.fn(),
+    };
+    const tickerStateServiceMock = {
+      tickers: signal<Record<string, unknown>>({}).asReadonly(),
+      subscribe: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
       providers: [
-        { provide: PortfolioService, useValue: portfolioServiceMock },
-        { provide: TransactionService, useValue: transactionServiceMock },
-        { provide: TickerStateService, useValue: tickerStateServiceMock },
+        {
+          provide: PortfolioService,
+          useValue: portfolioServiceMock as unknown as PortfolioService,
+        },
+        {
+          provide: TransactionService,
+          useValue: transactionServiceMock as unknown as TransactionService,
+        },
+        {
+          provide: TickerStateService,
+          useValue: tickerStateServiceMock as unknown as TickerStateService,
+        },
       ],
     }).compileComponents();
 
-    portfolioService = TestBed.inject(PortfolioService) as jasmine.SpyObj<PortfolioService>;
-    transactionService = TestBed.inject(TransactionService) as jasmine.SpyObj<TransactionService>;
-    tickerStateService = TestBed.inject(TickerStateService) as jasmine.SpyObj<TickerStateService>;
+    portfolioService = TestBed.inject(PortfolioService) as unknown as typeof portfolioServiceMock;
+    transactionService = TestBed.inject(
+      TransactionService,
+    ) as unknown as typeof transactionServiceMock;
+    tickerStateService = TestBed.inject(
+      TickerStateService,
+    ) as unknown as typeof tickerStateServiceMock;
 
-    portfolioService.loadAll.and.returnValue(of([]));
-    transactionService.loadByPortfolio.and.returnValue(of([]));
+    portfolioService.loadAll.mockReturnValue(of([]));
+    transactionService.loadByPortfolio.mockReturnValue(of([]));
 
     fixture = TestBed.createComponent(DashboardComponent);
     component = fixture.componentInstance;

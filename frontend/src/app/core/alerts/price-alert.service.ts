@@ -43,7 +43,6 @@ export class PriceAlertService {
         // If a rule already exists, preserve it; otherwise create new
         if (existing) {
           existing.targetPrice = item.target_price;
-          existing.direction = direction;
           return existing;
         }
 

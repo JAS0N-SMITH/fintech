@@ -94,7 +94,7 @@ describe('AuthService', () => {
   // -------------------------------------------------------------------------
 
   describe('cold-start restore', () => {
-    it('keeps loading true until restore attempt completes', () => {
+    it('keeps loading true until restore attempt completes', async () => {
       setup();
 
       // Simulate the early null event Supabase can emit on startup.
@@ -105,6 +105,7 @@ describe('AuthService', () => {
         .expectOne(SESSION_URL)
         .flush('no session', { status: 401, statusText: 'Unauthorized' });
 
+      await flush();
       expect(service.isLoading()).toBe(false);
     });
 
@@ -118,14 +119,12 @@ describe('AuthService', () => {
 
     it('restores the session on happy path', async () => {
       setup();
-      httpMock
-        .expectOne(SESSION_URL)
-        .flush({
-          access_token: 'at-restored',
-          expires_in: 900,
-          token_type: 'bearer',
-          user: mockUser,
-        });
+      httpMock.expectOne(SESSION_URL).flush({
+        access_token: 'at-restored',
+        expires_in: 900,
+        token_type: 'bearer',
+        user: mockUser,
+      });
       await flush();
 
       expect(mockSupabase.auth.setSession).toHaveBeenCalledWith({
@@ -244,7 +243,11 @@ describe('AuthService', () => {
         .flush({ access_token: 'at1', expires_in: 900, token_type: 'bearer', user: mockUser });
       await flush();
 
-      await service.signOut();
+      const signOutPromise = service.signOut();
+      const clearReq = httpMock.expectOne(SESSION_URL);
+      expect(clearReq.request.method).toBe('DELETE');
+      clearReq.flush({});
+      await signOutPromise;
       vi.advanceTimersByTime(60 * 60 * 1000);
       httpMock.expectNone(SESSION_URL);
     });
@@ -349,7 +352,11 @@ describe('AuthService', () => {
       await flush();
 
       const spy = vi.spyOn(router, 'navigate');
-      await service.signOut();
+      const signOutPromise = service.signOut();
+      const clearReq = httpMock.expectOne(SESSION_URL);
+      expect(clearReq.request.method).toBe('DELETE');
+      clearReq.flush({});
+      await signOutPromise;
 
       expect(mockSupabase.auth.signOut).toHaveBeenCalled();
       expect(spy).toHaveBeenCalledWith(['/auth/login']);
@@ -371,7 +378,11 @@ describe('AuthService', () => {
         .flush({ access_token: 'at', expires_in: 900, token_type: 'bearer', user: mockUser });
       await flush();
       mockSupabase.auth._emit('SIGNED_IN', buildSession());
-      await service.signOut();
+      const signOutPromise = service.signOut();
+      const clearReq = httpMock.expectOne(SESSION_URL);
+      expect(clearReq.request.method).toBe('DELETE');
+      clearReq.flush({});
+      await signOutPromise;
 
       const authKeyRegex = /sb-.*-auth-token/;
       const sessionWrites = setSpy.mock.calls.filter(([k]) => authKeyRegex.test(String(k)));
@@ -392,4 +403,4 @@ describe('AuthService', () => {
       expect(unsubSpy).toHaveBeenCalled();
     });
   });
-};);
+});

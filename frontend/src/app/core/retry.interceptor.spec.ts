@@ -1,21 +1,21 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { retryInterceptor } from './retry.interceptor';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 describe('retryInterceptor', () => {
   let httpMock: HttpTestingController;
   let httpClient: HttpClient;
+  const testRequestMatcher = (req: { url: string }) => req.url.includes('/test');
 
   beforeEach(() => {
+    vi.useFakeTimers();
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
       providers: [
         provideHttpClient(withInterceptors([retryInterceptor])),
+        provideHttpClientTesting(),
       ],
     });
 
@@ -25,254 +25,181 @@ describe('retryInterceptor', () => {
 
   afterEach(() => {
     httpMock.verify();
+    vi.useRealTimers();
   });
 
   describe('503 Service Unavailable', () => {
-    it('should retry on 503 response', (done) => {
-      httpClient.get('/test').subscribe({
-        next: (response) => {
-          expect(response).toEqual({ success: true });
-          done();
-        },
-        error: () => {
-          fail('Should have succeeded after retry');
-        },
-      });
+    it('should retry on 503 response', async () => {
+      const responsePromise = firstValueFrom(httpClient.get('/test'));
 
-      // First attempt: 503
-      let req = httpMock.expectOne('/test');
-      req.flush('Service Unavailable', {
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
         status: 503,
         statusText: 'Service Unavailable',
       });
 
-      // Retry after delay
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        req.flush({ success: true });
-      }, 1100); // After 1s backoff
+      await vi.advanceTimersByTimeAsync(1000);
+      httpMock.expectOne(testRequestMatcher).flush({ success: true });
+
+      await expect(responsePromise).resolves.toEqual({ success: true });
     });
 
-    it('should stop retrying after max retries exceeded', (done) => {
-      let requestCount = 0;
+    it('should stop retrying after max retries exceeded', async () => {
+      const resultPromise = firstValueFrom(httpClient.get('/test')).catch(
+        (error: HttpErrorResponse) => error,
+      );
 
-      httpClient.get('/test').subscribe({
-        next: () => {
-          fail('Should not succeed');
-        },
-        error: (error: HttpErrorResponse) => {
-          expect(error.status).toBe(503);
-          expect(requestCount).toBe(4); // 1 initial + 3 retries
-          done();
-        },
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
       });
 
-      // Respond to initial + 3 retries with 503
-      for (let i = 0; i < 4; i++) {
-        setTimeout(() => {
-          requestCount++;
-          const req = httpMock.expectOne('/test');
-          req.flush('Service Unavailable', {
-            status: 503,
-            statusText: 'Service Unavailable',
-          });
-        }, i * 2000); // Account for exponential backoff
-      }
+      await vi.advanceTimersByTimeAsync(1000);
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+
+      await vi.advanceTimersByTimeAsync(2000);
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+
+      await vi.advanceTimersByTimeAsync(4000);
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+
+      const error = (await resultPromise) as HttpErrorResponse;
+      expect(error.status).toBe(503);
     });
   });
 
   describe('429 Rate Limited', () => {
-    it('should retry on 429 response', (done) => {
-      httpClient.get('/test').subscribe({
-        next: (response) => {
-          expect(response).toEqual({ success: true });
-          done();
-        },
-        error: () => {
-          fail('Should have succeeded after retry');
-        },
-      });
+    it('should retry on 429 response', async () => {
+      const responsePromise = firstValueFrom(httpClient.get('/test'));
 
-      // First attempt: 429
-      let req = httpMock.expectOne('/test');
-      req.flush('Too Many Requests', {
+      httpMock.expectOne(testRequestMatcher).flush('Too Many Requests', {
         status: 429,
         statusText: 'Too Many Requests',
       });
 
-      // Retry after delay
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        req.flush({ success: true });
-      }, 1100); // After 1s backoff
+      await vi.advanceTimersByTimeAsync(1000);
+      httpMock.expectOne(testRequestMatcher).flush({ success: true });
+
+      await expect(responsePromise).resolves.toEqual({ success: true });
     });
 
-    it('should respect Retry-After header (seconds)', (done) => {
-      const startTime = Date.now();
+    it('should respect Retry-After header (seconds)', async () => {
+      const responsePromise = firstValueFrom(httpClient.get('/test'));
 
-      httpClient.get('/test').subscribe({
-        next: (response) => {
-          const elapsed = Date.now() - startTime;
-          // Should wait ~3 seconds as specified in Retry-After
-          expect(elapsed).toBeGreaterThan(2900);
-          expect(response).toEqual({ success: true });
-          done();
-        },
-        error: () => {
-          fail('Should have succeeded after retry');
-        },
-      });
-
-      // First attempt: 429 with Retry-After header
-      let req = httpMock.expectOne('/test');
-      req.flush('Too Many Requests', {
+      httpMock.expectOne(testRequestMatcher).flush('Too Many Requests', {
         status: 429,
         statusText: 'Too Many Requests',
         headers: { 'Retry-After': '3' },
       });
 
-      // Retry after 3 seconds (as specified in header)
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        req.flush({ success: true });
-      }, 3100);
+      await vi.advanceTimersByTimeAsync(2999);
+      httpMock.expectNone(testRequestMatcher);
+
+      await vi.advanceTimersByTimeAsync(1);
+      httpMock.expectOne(testRequestMatcher).flush({ success: true });
+
+      await expect(responsePromise).resolves.toEqual({ success: true });
     });
   });
 
   describe('non-retryable errors', () => {
-    it('should not retry on 400 Bad Request', (done) => {
-      httpClient.get('/test').subscribe({
-        next: () => {
-          fail('Should not succeed');
-        },
-        error: (error: HttpErrorResponse) => {
-          expect(error.status).toBe(400);
-          done();
-        },
-      });
+    it('should not retry on 400 Bad Request', async () => {
+      const resultPromise = firstValueFrom(httpClient.get('/test')).catch(
+        (error: HttpErrorResponse) => error,
+      );
 
-      const req = httpMock.expectOne('/test');
-      req.flush('Bad Request', {
+      httpMock.expectOne(testRequestMatcher).flush('Bad Request', {
         status: 400,
         statusText: 'Bad Request',
       });
 
-      // Should not attempt any retries
-      httpMock.expectNone('/test');
+      const error = (await resultPromise) as HttpErrorResponse;
+      expect(error.status).toBe(400);
+      httpMock.expectNone(testRequestMatcher);
     });
 
-    it('should not retry on 401 Unauthorized', (done) => {
-      httpClient.get('/test').subscribe({
-        next: () => {
-          fail('Should not succeed');
-        },
-        error: (error: HttpErrorResponse) => {
-          expect(error.status).toBe(401);
-          done();
-        },
-      });
+    it('should not retry on 401 Unauthorized', async () => {
+      const resultPromise = firstValueFrom(httpClient.get('/test')).catch(
+        (error: HttpErrorResponse) => error,
+      );
 
-      const req = httpMock.expectOne('/test');
-      req.flush('Unauthorized', {
+      httpMock.expectOne(testRequestMatcher).flush('Unauthorized', {
         status: 401,
         statusText: 'Unauthorized',
       });
 
-      httpMock.expectNone('/test');
+      const error = (await resultPromise) as HttpErrorResponse;
+      expect(error.status).toBe(401);
+      httpMock.expectNone(testRequestMatcher);
     });
 
-    it('should not retry on 500 Internal Server Error', (done) => {
-      httpClient.get('/test').subscribe({
-        next: () => {
-          fail('Should not succeed');
-        },
-        error: (error: HttpErrorResponse) => {
-          expect(error.status).toBe(500);
-          done();
-        },
-      });
+    it('should not retry on 500 Internal Server Error', async () => {
+      const resultPromise = firstValueFrom(httpClient.get('/test')).catch(
+        (error: HttpErrorResponse) => error,
+      );
 
-      const req = httpMock.expectOne('/test');
-      req.flush('Internal Server Error', {
+      httpMock.expectOne(testRequestMatcher).flush('Internal Server Error', {
         status: 500,
         statusText: 'Internal Server Error',
       });
 
-      httpMock.expectNone('/test');
+      const error = (await resultPromise) as HttpErrorResponse;
+      expect(error.status).toBe(500);
+      httpMock.expectNone(testRequestMatcher);
     });
   });
 
   describe('successful responses', () => {
-    it('should pass through 200 OK without retry', (done) => {
-      httpClient.get('/test').subscribe({
-        next: (response) => {
-          expect(response).toEqual({ data: 'success' });
-          done();
-        },
-        error: () => {
-          fail('Should not error');
-        },
-      });
-
-      const req = httpMock.expectOne('/test');
-      req.flush({ data: 'success' });
-
-      // Should not attempt any additional requests
-      httpMock.expectNone('/test');
+    it('should pass through 200 OK without retry', async () => {
+      const responsePromise = firstValueFrom(httpClient.get('/test'));
+      httpMock.expectOne(testRequestMatcher).flush({ data: 'success' });
+      await expect(responsePromise).resolves.toEqual({ data: 'success' });
+      httpMock.expectNone(testRequestMatcher);
     });
   });
 
   describe('exponential backoff timing', () => {
-    it('should use correct backoff delays', (done) => {
-      const timings: number[] = [];
-      const startTime = Date.now();
+    it('should use correct backoff delays', async () => {
+      const responsePromise = firstValueFrom(httpClient.get('/test'));
 
-      httpClient.get('/test').subscribe({
-        next: () => {
-          const duration = Date.now() - startTime;
-          // 1000 + 2000 + 4000 = 7000ms total backoff
-          expect(duration).toBeGreaterThan(6900);
-          expect(duration).toBeLessThan(8000);
-          done();
-        },
-        error: () => {
-          fail('Should succeed after retries');
-        },
-      });
-
-      // Initial request: 503
-      let req = httpMock.expectOne('/test');
-      timings.push(Date.now() - startTime);
-      req.flush('Service Unavailable', {
+      // Initial request: 503, next after 1s
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
         status: 503,
         statusText: 'Service Unavailable',
       });
 
-      // Retry 1 (after 1s): 503
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        timings.push(Date.now() - startTime);
-        req.flush('Service Unavailable', {
-          status: 503,
-          statusText: 'Service Unavailable',
-        });
-      }, 1100);
+      await vi.advanceTimersByTimeAsync(999);
+      httpMock.expectNone(testRequestMatcher);
+      await vi.advanceTimersByTimeAsync(1);
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
 
-      // Retry 2 (after 2s): 503
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        timings.push(Date.now() - startTime);
-        req.flush('Service Unavailable', {
-          status: 503,
-          statusText: 'Service Unavailable',
-        });
-      }, 3200);
+      // Next retry after 2s
+      await vi.advanceTimersByTimeAsync(1999);
+      httpMock.expectNone(testRequestMatcher);
+      await vi.advanceTimersByTimeAsync(1);
+      httpMock.expectOne(testRequestMatcher).flush('Service Unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
 
-      // Retry 3 (after 4s): success
-      setTimeout(() => {
-        req = httpMock.expectOne('/test');
-        req.flush({ success: true });
-      }, 7300);
-    });
+      // Next retry after 4s
+      await vi.advanceTimersByTimeAsync(3999);
+      httpMock.expectNone(testRequestMatcher);
+      await vi.advanceTimersByTimeAsync(1);
+      httpMock.expectOne(testRequestMatcher).flush({ success: true });
+
+      await expect(responsePromise).resolves.toEqual({ success: true });
+    };);
   });
 });

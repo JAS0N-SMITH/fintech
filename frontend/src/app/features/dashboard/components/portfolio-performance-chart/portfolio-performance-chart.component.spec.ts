@@ -55,7 +55,7 @@ describe('PortfolioPerformanceChartComponent', () => {
       transaction_date: '2024-01-10',
       quantity: '10',
       price_per_share: '100',
-      dividend_per_share: null,
+      dividend_per_share: undefined,
       total_amount: '1000',
       notes: '',
       created_at: '2024-01-10T00:00:00Z',

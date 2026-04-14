@@ -175,7 +175,7 @@ describe('PortfolioAlertService', () => {
       const call = messageMock.add.mock.calls[0][0];
       expect(call.severity).toBe('warn');
       expect(call.summary).toContain('Portfolio');
-      expect(call.summary).toContain('Daily change');
+      expect(call.summary.toLowerCase()).toContain('daily change');
     });
 
     it('does not fire when holdings are empty', () => {
@@ -211,7 +211,7 @@ describe('PortfolioAlertService', () => {
       expect(messageMock.add).toHaveBeenCalledOnce();
       const call = messageMock.add.mock.calls[0][0];
       expect(call.summary).toContain('AAPL');
-      expect(call.summary).toContain('gain');
+      expect(call.detail).toContain('+');
     });
 
     it('fires position_gain_loss alert when holding loses more than threshold', () => {

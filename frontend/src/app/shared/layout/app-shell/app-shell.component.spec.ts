@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppShellComponent } from './app-shell.component';
 import { AuthService } from '../../../core/auth.service';
@@ -7,21 +8,24 @@ import { ThemeService } from '../../../core/theme.service';
 describe('AppShellComponent', () => {
   let component: AppShellComponent;
   let fixture: ComponentFixture<AppShellComponent>;
-  let authService: jasmine.SpyObj<AuthService>;
-  let themeService: jasmine.SpyObj<ThemeService>;
-  let router: jasmine.SpyObj<Router>;
+  let authService: any;
+  let themeService: any;
+  let router: any;
 
   beforeEach(async () => {
-    const authServiceMock = jasmine.createSpyObj('AuthService', ['logout'], {
-      user: jasmine.createSpy().and.returnValue(null),
-    });
-    const themeServiceMock = jasmine.createSpyObj('ThemeService', ['toggle'], {
-      isDark: jasmine.createSpy().and.returnValue(false),
-    });
-    const routerMock = jasmine.createSpyObj('Router', ['navigate'], {
+    const authServiceMock = {
+      signOut: vi.fn(),
+      user: signal(null).asReadonly(),
+    };
+    const themeServiceMock = {
+      toggle: vi.fn(),
+      isDark: vi.fn().mockReturnValue(false),
+    };
+    const routerMock = {
+      navigate: vi.fn(),
       url: '/',
-      events: jasmine.createSpyObj('events', ['subscribe']),
-    });
+      events: { subscribe: vi.fn() },
+    };
 
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
@@ -30,11 +34,15 @@ describe('AppShellComponent', () => {
         { provide: ThemeService, useValue: themeServiceMock },
         { provide: Router, useValue: routerMock },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(AppShellComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
-    authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    themeService = TestBed.inject(ThemeService) as jasmine.SpyObj<ThemeService>;
-    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    authService = TestBed.inject(AuthService) as any;
+    themeService = TestBed.inject(ThemeService) as any;
+    router = TestBed.inject(Router) as any;
 
     fixture = TestBed.createComponent(AppShellComponent);
     component = fixture.componentInstance;
@@ -59,7 +67,7 @@ describe('AppShellComponent', () => {
 
   it('should logout', () => {
     component.logout();
-    expect(authService.logout).toHaveBeenCalled();
+    expect(authService['signOut']).toHaveBeenCalled();
   });
 
   it('should build menu items without admin section for non-admin users', () => {

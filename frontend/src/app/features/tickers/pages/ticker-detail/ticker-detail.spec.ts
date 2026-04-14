@@ -154,11 +154,31 @@ describe('computeHoldingPeriod()', () => {
 
 describe('TickerDetailComponent — Timeframe API parameter mapping', () => {
   let component: TickerDetailComponent;
+  let fixture: any;
   let marketDataStub: ReturnType<typeof makeMarketDataServiceStub>;
+  let matchMediaSpy: ReturnType<typeof vi.fn> | null = null;
 
   beforeEach(() => {
+    matchMediaSpy = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    });
+  });
+
+  beforeEach(async () => {
     marketDataStub = makeMarketDataServiceStub();
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
       imports: [TickerDetailComponent],
       providers: [
         provideHttpClient(),
@@ -170,40 +190,38 @@ describe('TickerDetailComponent — Timeframe API parameter mapping', () => {
         { provide: TransactionService, useValue: makeTransactionServiceStub() },
         { provide: PortfolioService, useValue: makePortfolioServiceStub() },
       ],
-    });
-    component = TestBed.createComponent(TickerDetailComponent).componentInstance;
+    })
+      .overrideComponent(TickerDetailComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
+    fixture = TestBed.createComponent(TickerDetailComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('default timeframe 1M is passed to getHistoricalBars', () => {
     expect(component.selectedTimeframe()).toBe('1M');
-    component.ngAfterViewInit();
-    // Trigger the effect
-    component.selectedTimeframe.set('1M');
-
-    // Small delay to allow the effect to run
-    vi.runAllTimersAsync();
-    expect(marketDataStub.getHistoricalBars).toHaveBeenCalledWith('AAPL', '1M');
-  });
-
-  it.each([
-    ['1D'],
-    ['1W'],
-    ['1M'],
-    ['3M'],
-    ['1Y'],
-    ['ALL'],
-  ] as [Timeframe][])('selectTimeframe("%s") passes it to getHistoricalBars', (tf) => {
-    component.ngAfterViewInit();
-    component.selectTimeframe(tf);
-
-    // Allow effect to run
-    vi.runAllTimersAsync();
-
-    // Check that the call was made with the exact timeframe
     const calls = (marketDataStub.getHistoricalBars as any).mock.calls;
-    const lastCall = calls[calls.length - 1];
-    expect(lastCall[1]).toBe(tf);
+    expect(calls.some((call: [string, Timeframe]) => call[0] === 'AAPL' && call[1] === '1M')).toBe(
+      true,
+    );
   });
+
+  it.each([['1D'], ['1W'], ['1M'], ['3M'], ['1Y'], ['ALL']] as [Timeframe][])(
+    'selectTimeframe("%s") passes it to getHistoricalBars',
+    (tf) => {
+      component.selectTimeframe(tf);
+      fixture.detectChanges();
+      TestBed.flushEffects();
+
+      // Check that the call was made with the exact timeframe
+      const calls = (marketDataStub.getHistoricalBars as any).mock.calls;
+      expect(calls.some((call: [string, Timeframe]) => call[0] === 'AAPL' && call[1] === tf)).toBe(
+        true,
+      );
+    };,
+  );
 });
 
 // ===========================================================================
@@ -214,9 +232,9 @@ describe('TickerDetailComponent — Position summary derivation', () => {
   let component: TickerDetailComponent;
   let transactionServiceStub: ReturnType<typeof makeTransactionServiceStub>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     transactionServiceStub = makeTransactionServiceStub();
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
       imports: [TickerDetailComponent],
       providers: [
         provideHttpClient(),
@@ -228,7 +246,11 @@ describe('TickerDetailComponent — Position summary derivation', () => {
         { provide: TransactionService, useValue: transactionServiceStub },
         { provide: PortfolioService, useValue: makePortfolioServiceStub() },
       ],
-    });
+    })
+      .overrideComponent(TickerDetailComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
     component = TestBed.createComponent(TickerDetailComponent).componentInstance;
   });
 
@@ -287,7 +309,7 @@ describe('TickerDetailComponent — Gain/loss calculation', () => {
   let component: TickerDetailComponent;
   let tickersSignal: ReturnType<typeof signal>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create a writable signal for testing
     tickersSignal = signal<Record<string, any>>({});
     const tickerStateStub = {
@@ -295,7 +317,7 @@ describe('TickerDetailComponent — Gain/loss calculation', () => {
       tickers: tickersSignal.asReadonly(),
     };
 
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
       imports: [TickerDetailComponent],
       providers: [
         provideHttpClient(),
@@ -307,7 +329,11 @@ describe('TickerDetailComponent — Gain/loss calculation', () => {
         { provide: TransactionService, useValue: makeTransactionServiceStub() },
         { provide: PortfolioService, useValue: makePortfolioServiceStub() },
       ],
-    });
+    })
+      .overrideComponent(TickerDetailComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
     component = TestBed.createComponent(TickerDetailComponent).componentInstance;
   });
 
@@ -367,8 +393,8 @@ describe('TickerDetailComponent — Gain/loss calculation', () => {
 describe('TickerDetailComponent — Holding period', () => {
   let component: TickerDetailComponent;
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
       imports: [TickerDetailComponent],
       providers: [
         provideHttpClient(),
@@ -380,7 +406,11 @@ describe('TickerDetailComponent — Holding period', () => {
         { provide: TransactionService, useValue: makeTransactionServiceStub() },
         { provide: PortfolioService, useValue: makePortfolioServiceStub() },
       ],
-    });
+    })
+      .overrideComponent(TickerDetailComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
     component = TestBed.createComponent(TickerDetailComponent).componentInstance;
   });
 

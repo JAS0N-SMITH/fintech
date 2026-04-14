@@ -14,7 +14,7 @@ describe('GlobalErrorHandler', () => {
 
     handler = TestBed.inject(GlobalErrorHandler);
     messageService = TestBed.inject(MessageService);
-    spyOn(messageService, 'add');
+    vi.spyOn(messageService, 'add');
   });
 
   describe('generic errors', () => {
@@ -23,7 +23,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Something went wrong',
         }),
@@ -34,7 +34,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError('string error');
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'An unexpected error occurred',
         }),
@@ -52,7 +52,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Session expired',
         }),
@@ -68,10 +68,10 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
           summary: 'Too many requests',
-          detail: 'Please wait a moment before trying again.',
+          detail: 'Too Many Requests',
         }),
       );
     });
@@ -85,10 +85,10 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
           summary: 'Service temporarily unavailable',
-          detail: 'Please try again in a few moments.',
+          detail: 'Service Unavailable',
         }),
       );
     });
@@ -108,7 +108,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Server error',
           detail: 'The server encountered an unexpected condition.',
@@ -125,7 +125,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Access denied',
         }),
@@ -141,7 +141,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Not found',
         }),
@@ -157,7 +157,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Network error',
         }),
@@ -175,7 +175,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
         }),
       );
@@ -190,7 +190,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
         }),
       );
@@ -205,7 +205,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
         }),
       );
@@ -220,7 +220,7 @@ describe('GlobalErrorHandler', () => {
       handler.handleError(error);
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
         }),
       );

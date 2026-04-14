@@ -7,16 +7,17 @@ import type { ConnectionState, TickerState } from '../../../features/portfolio/m
 describe('ConnectionStatusComponent', () => {
   let component: ConnectionStatusComponent;
   let fixture: ComponentFixture<ConnectionStatusComponent>;
-  let tickerStateService: Partial<TickerStateService>;
+  let mockConnectionState: ReturnType<typeof signal<ConnectionState>>;
+  let mockTickers: ReturnType<typeof signal<Record<string, TickerState>>>;
 
   beforeEach(async () => {
     // Mock TickerStateService
-    const mockConnectionState = signal<ConnectionState>('disconnected');
-    const mockTickers = signal<Record<string, TickerState>>({});
+    mockConnectionState = signal<ConnectionState>('disconnected');
+    mockTickers = signal<Record<string, TickerState>>({});
 
-    tickerStateService = {
-      connectionState: () => mockConnectionState(),
-      tickers: () => mockTickers(),
+    const tickerStateService = {
+      connectionState: mockConnectionState.asReadonly(),
+      tickers: mockTickers.asReadonly(),
     };
 
     await TestBed.configureTestingModule({
@@ -33,24 +34,21 @@ describe('ConnectionStatusComponent', () => {
 
   describe('label computation', () => {
     it('should display "Live" when connected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('connected');
+      mockConnectionState.set('connected');
 
       fixture.detectChanges();
       expect(component.label()).toBe('Live');
     });
 
     it('should display "Reconnecting…" when reconnecting', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('reconnecting');
+      mockConnectionState.set('reconnecting');
 
       fixture.detectChanges();
       expect(component.label()).toBe('Reconnecting…');
     });
 
     it('should display "Offline" when disconnected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('disconnected');
+      mockConnectionState.set('disconnected');
 
       fixture.detectChanges();
       expect(component.label()).toBe('Offline');
@@ -59,24 +57,21 @@ describe('ConnectionStatusComponent', () => {
 
   describe('severity computation', () => {
     it('should have "success" severity when connected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('connected');
+      mockConnectionState.set('connected');
 
       fixture.detectChanges();
       expect(component.severity()).toBe('success');
     });
 
     it('should have "warn" severity when reconnecting', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('reconnecting');
+      mockConnectionState.set('reconnecting');
 
       fixture.detectChanges();
       expect(component.severity()).toBe('warn');
     });
 
     it('should have "danger" severity when disconnected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('disconnected');
+      mockConnectionState.set('disconnected');
 
       fixture.detectChanges();
       expect(component.severity()).toBe('danger');
@@ -85,16 +80,14 @@ describe('ConnectionStatusComponent', () => {
 
   describe('last updated display', () => {
     it('should not show stale info when connected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('connected');
+      mockConnectionState.set('connected');
 
       fixture.detectChanges();
       expect(component.showStaleInfo()).toBe(false);
     });
 
     it('should show stale info when not connected', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('disconnected');
+      mockConnectionState.set('disconnected');
 
       fixture.detectChanges();
       expect(component.showStaleInfo()).toBe(true);
@@ -106,8 +99,7 @@ describe('ConnectionStatusComponent', () => {
 
     it('should return lastUpdated for provided symbol', () => {
       const now = new Date();
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._tickers = signal<Record<string, TickerState>>({
+      mockTickers.set({
         AAPL: {
           symbol: 'AAPL',
           quote: null,
@@ -131,8 +123,7 @@ describe('ConnectionStatusComponent', () => {
 
   describe('accessibility', () => {
     it('should have accessible aria-label without symbol', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('connected');
+      mockConnectionState.set('connected');
 
       fixture.detectChanges();
       const ariaLabel = component.ariaLabel();
@@ -140,8 +131,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should have accessible aria-label with symbol', () => {
-      const mockService = TestBed.inject(TickerStateService) as any;
-      mockService._connectionState = signal<ConnectionState>('disconnected');
+      mockConnectionState.set('disconnected');
 
       TestBed.runInInjectionContext(() => {
         const localFixture = TestBed.createComponent(ConnectionStatusComponent);

@@ -7,12 +7,13 @@ import type {
   ImportResult,
 } from '../models/import.model';
 import type { CreateTransactionInput } from '../models/transaction.model';
+import { environment } from '../../../../environments/environment';
 
 describe('ImportService', () => {
   let service: ImportService;
   let httpMock: HttpTestingController;
   const portfolioId = 'port-123';
-  const baseUrl = `/api/v1/portfolios/${portfolioId}/import`;
+  const baseUrl = `${environment.apiBaseUrl}/portfolios/${portfolioId}/import`;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -29,7 +30,7 @@ describe('ImportService', () => {
   });
 
   describe('preview', () => {
-    it('should POST CSV file and return preview', (done) => {
+    it('should POST CSV file and return preview', () => {
       const file = new File(['Symbol,Date\nAAPL,2024-01-15'], 'test.csv', {
         type: 'text/csv',
       });
@@ -52,7 +53,6 @@ describe('ImportService', () => {
         expect(result.parsed).toBe(1);
         expect(result.valid).toBe(1);
         expect(result.transactions.length).toBe(1);
-        done();
       });
 
       const req = httpMock.expectOne(baseUrl);
@@ -61,7 +61,7 @@ describe('ImportService', () => {
       req.flush(mockPreview);
     });
 
-    it('should include brokerage param when provided', (done) => {
+    it('should include brokerage param when provided', () => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
       const mockPreview: ImportPreview = {
         parsed: 0,
@@ -70,16 +70,14 @@ describe('ImportService', () => {
         transactions: [],
       };
 
-      service.preview(portfolioId, file, 'fidelity').subscribe(() => {
-        done();
-      });
+      service.preview(portfolioId, file, 'fidelity').subscribe(() => {});
 
       const req = httpMock.expectOne(`${baseUrl}?brokerage=fidelity`);
       expect(req.request.method).toBe('POST');
       req.flush(mockPreview);
     });
 
-    it('should return preview with errors', (done) => {
+    it('should return preview with errors', () => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
       const mockPreview: ImportPreview = {
         parsed: 2,
@@ -100,14 +98,13 @@ describe('ImportService', () => {
         expect(result.valid).toBe(1);
         expect(result.errors.length).toBe(1);
         expect(result.errors[0].message).toBe('invalid symbol format');
-        done();
       });
 
       const req = httpMock.expectOne(baseUrl);
       req.flush(mockPreview);
     });
 
-    it('should URL-encode brokerage param', (done) => {
+    it('should URL-encode brokerage param', () => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
       const mockPreview: ImportPreview = {
         parsed: 0,
@@ -116,9 +113,7 @@ describe('ImportService', () => {
         transactions: [],
       };
 
-      service.preview(portfolioId, file, 'test brokerage').subscribe(() => {
-        done();
-      });
+      service.preview(portfolioId, file, 'test brokerage').subscribe(() => {});
 
       const req = httpMock.expectOne(`${baseUrl}?brokerage=test%20brokerage`);
       req.flush(mockPreview);
@@ -126,7 +121,7 @@ describe('ImportService', () => {
   });
 
   describe('confirm', () => {
-    it('should POST transactions and return result', (done) => {
+    it('should POST transactions and return result', () => {
       const transactions: CreateTransactionInput[] = [
         {
           transaction_type: 'buy',
@@ -149,7 +144,6 @@ describe('ImportService', () => {
         expect(result.created).toBe(1);
         expect(result.failed).toBe(0);
         expect(result.messages.length).toBe(1);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/confirm`);
@@ -163,7 +157,7 @@ describe('ImportService', () => {
       req.flush(mockResult);
     });
 
-    it('should handle partial import failures', (done) => {
+    it('should handle partial import failures', () => {
       const transactions: CreateTransactionInput[] = [
         {
           transaction_type: 'buy',
@@ -198,14 +192,13 @@ describe('ImportService', () => {
         expect(result.failed).toBe(1);
         expect(result.errors.length).toBe(1);
         expect(result.messages.length).toBe(2);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/confirm`);
       req.flush(mockResult);
     });
 
-    it('should handle multiple transactions', (done) => {
+    it('should handle multiple transactions', () => {
       const transactions: CreateTransactionInput[] = [
         {
           transaction_type: 'buy',
@@ -234,7 +227,6 @@ describe('ImportService', () => {
 
       service.confirm(portfolioId, transactions).subscribe((result) => {
         expect(result.created).toBe(2);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/confirm`);
@@ -243,7 +235,7 @@ describe('ImportService', () => {
       req.flush(mockResult);
     });
 
-    it('should serialize decimal fields as strings', (done) => {
+    it('should serialize decimal fields as strings', () => {
       const transactions: CreateTransactionInput[] = [
         {
           transaction_type: 'buy',
@@ -262,9 +254,7 @@ describe('ImportService', () => {
         messages: [],
       };
 
-      service.confirm(portfolioId, transactions).subscribe(() => {
-        done();
-      });
+      service.confirm(portfolioId, transactions).subscribe(() => {});
 
       const req = httpMock.expectOne(`${baseUrl}/confirm`);
       const body = req.request.body as ImportConfirmRequest;
@@ -277,7 +267,7 @@ describe('ImportService', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate preview errors', (done) => {
+    it('should propagate preview errors', () => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
 
       service.preview(portfolioId, file).subscribe({
@@ -286,7 +276,6 @@ describe('ImportService', () => {
         },
         error: (err) => {
           expect(err.status).toBe(413);
-          done();
         },
       });
 
@@ -294,7 +283,7 @@ describe('ImportService', () => {
       req.flush('File too large', { status: 413, statusText: 'Payload Too Large' });
     });
 
-    it('should propagate confirm errors', (done) => {
+    it('should propagate confirm errors', () => {
       const transactions: CreateTransactionInput[] = [];
 
       service.confirm(portfolioId, transactions).subscribe({
@@ -303,7 +292,6 @@ describe('ImportService', () => {
         },
         error: (err) => {
           expect(err.status).toBe(400);
-          done();
         },
       });
 

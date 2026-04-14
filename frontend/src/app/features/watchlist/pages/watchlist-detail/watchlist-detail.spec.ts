@@ -10,9 +10,9 @@ import type { Watchlist, WatchlistItem } from '../../models/watchlist.model';
 describe('WatchlistDetailComponent', () => {
   let component: WatchlistDetailComponent;
   let fixture: ComponentFixture<WatchlistDetailComponent>;
-  let watchlistServiceMock: jasmine.SpyObj<WatchlistService>;
-  let tickerStateServiceMock: jasmine.SpyObj<TickerStateService>;
-  let routerMock: jasmine.SpyObj<Router>;
+  let watchlistServiceMock: any;
+  let tickerStateServiceMock: any;
+  let routerMock: any;
   let activatedRouteMock: any;
 
   const mockWatchlist: Watchlist = {
@@ -35,33 +35,38 @@ describe('WatchlistDetailComponent', () => {
   ];
 
   beforeEach(async () => {
-    const watchlistSpy = jasmine.createSpyObj('WatchlistService', [
-      'loadById',
-      'removeItem',
-      'cleanup',
-    ]);
-    watchlistSpy.selectedWatchlist = jasmine.createSpy('selectedWatchlist').and.returnValue(mockWatchlist);
-    watchlistSpy.items = jasmine.createSpy('items').and.returnValue(mockItems);
-    watchlistSpy.loading = jasmine.createSpy('loading').and.returnValue(false);
+    const watchlistSpy = {
+      loadById: vi.fn(),
+      removeItem: vi.fn(),
+      cleanup: vi.fn(),
+      selectedWatchlist: vi.fn().mockReturnValue(mockWatchlist),
+      items: vi.fn().mockReturnValue(mockItems),
+      loading: vi.fn().mockReturnValue(false),
+    };
 
-    const tickerSpy = jasmine.createSpyObj('TickerStateService', ['subscribe', 'unsubscribe']);
-    tickerSpy.tickers = jasmine.createSpy('tickers').and.returnValue({
-      AAPL: {
-        symbol: 'AAPL',
-        currentPrice: 155,
-        dayHigh: 156,
-        dayLow: 150,
-        previousClose: 154,
-        quote: { previous_close: 154, price: 155 },
-      },
-    });
+    const tickerSpy = {
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+      tickers: vi.fn().mockReturnValue({
+        AAPL: {
+          symbol: 'AAPL',
+          currentPrice: 155,
+          dayHigh: 156,
+          dayLow: 150,
+          previousClose: 154,
+          quote: { previous_close: 154, price: 155 },
+        },
+      }),
+    };
 
-    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+    const routerSpy = {
+      navigate: vi.fn(),
+    };
 
     activatedRouteMock = {
       snapshot: {
         paramMap: {
-          get: jasmine.createSpy('get').and.returnValue('wl-1'),
+          get: vi.fn().mockReturnValue('wl-1'),
         },
       },
     };
@@ -78,12 +83,12 @@ describe('WatchlistDetailComponent', () => {
       ],
     }).compileComponents();
 
-    watchlistServiceMock = TestBed.inject(WatchlistService) as jasmine.SpyObj<WatchlistService>;
-    tickerStateServiceMock = TestBed.inject(TickerStateService) as jasmine.SpyObj<TickerStateService>;
-    routerMock = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    watchlistServiceMock = TestBed.inject(WatchlistService) as any;
+    tickerStateServiceMock = TestBed.inject(TickerStateService) as any;
+    routerMock = TestBed.inject(Router) as any;
 
-    watchlistServiceMock.loadById.and.returnValue(of(mockWatchlist));
-    watchlistServiceMock.removeItem.and.returnValue(of(void 0));
+    watchlistServiceMock.loadById.mockReturnValue(of(mockWatchlist));
+    watchlistServiceMock.removeItem.mockReturnValue(of(void 0));
 
     fixture = TestBed.createComponent(WatchlistDetailComponent);
     component = fixture.componentInstance;
@@ -100,7 +105,7 @@ describe('WatchlistDetailComponent', () => {
   });
 
   it('should navigate to watchlists if no ID in route', () => {
-    activatedRouteMock.snapshot.paramMap.get.and.returnValue(null);
+    activatedRouteMock.snapshot.paramMap.get.mockReturnValue(null);
 
     fixture.detectChanges();
 
@@ -110,14 +115,14 @@ describe('WatchlistDetailComponent', () => {
   it('should display watchlist items', () => {
     fixture.detectChanges();
 
-    const items = component.items();
+    const items = component['items']();
     expect(items.length).toBe(1);
     expect(items[0].symbol).toBe('AAPL');
   });
 
   it('should get target price status above when price exceeds target', () => {
     const item = mockItems[0];
-    const status = component.getTargetPriceStatus(item);
+    const status = component['getTargetPriceStatus'](item);
 
     expect(status).toBe('above');
   });
@@ -127,7 +132,7 @@ describe('WatchlistDetailComponent', () => {
       ...mockItems[0],
       target_price: 160,
     };
-    const status = component.getTargetPriceStatus(item);
+    const status = component['getTargetPriceStatus'](item);
 
     expect(status).toBe('below');
   });
@@ -137,14 +142,14 @@ describe('WatchlistDetailComponent', () => {
       ...mockItems[0],
       target_price: undefined,
     };
-    const status = component.getTargetPriceStatus(item);
+    const status = component['getTargetPriceStatus'](item);
 
     expect(status).toBeNull();
   });
 
   it('should open add item dialog', () => {
     fixture.detectChanges();
-    component.openAddItemDialog();
+    component['openAddItemDialog']();
 
     expect(component['addItemDialogVisible']()).toBe(true);
   });

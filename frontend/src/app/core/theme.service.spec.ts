@@ -41,24 +41,31 @@ describe('ThemeService', () => {
 
   it('should add dark class to document.documentElement when dark', () => {
     service.setDark(true);
+    TestBed.flushEffects();
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
   it('should remove dark class from document.documentElement when light', () => {
     document.documentElement.classList.add('dark');
     service.setDark(false);
+    TestBed.flushEffects();
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 
   it('should persist theme to localStorage', () => {
     service.setDark(true);
+    TestBed.flushEffects();
     expect(localStorage.getItem('app-theme')).toBe('dark');
     service.setDark(false);
+    TestBed.flushEffects();
     expect(localStorage.getItem('app-theme')).toBe('light');
   });
 
   it('should load theme from localStorage on init', () => {
+    TestBed.resetTestingModule();
     localStorage.setItem('app-theme', 'dark');
+
+    TestBed.configureTestingModule({});
     const newService = TestBed.inject(ThemeService);
     expect(newService.isDark()).toBe(true);
   });

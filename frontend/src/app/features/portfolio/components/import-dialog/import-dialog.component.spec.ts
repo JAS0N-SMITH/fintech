@@ -7,32 +7,51 @@ import type { ImportPreview, ImportResult } from '../../models/import.model';
 import type { CreateTransactionInput } from '../../models/transaction.model';
 import { of, throwError } from 'rxjs';
 
+const flush = () => Promise.resolve().then(() => Promise.resolve());
+
 describe('ImportDialogComponent', () => {
   let component: ImportDialogComponent;
   let fixture: ComponentFixture<ImportDialogComponent>;
-  let importService: jasmine.SpyObj<ImportService>;
-  let messageService: jasmine.SpyObj<MessageService>;
+  let importService: {
+    preview: ReturnType<typeof vi.fn>;
+    confirm: ReturnType<typeof vi.fn>;
+  };
+  let messageService: {
+    add: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    const importServiceSpy = jasmine.createSpyObj('ImportService', [
-      'preview',
-      'confirm',
-    ]);
-    const messageServiceSpy = jasmine.createSpyObj('MessageService', ['add']);
+    const importServiceSpy = {
+      preview: vi.fn(),
+      confirm: vi.fn(),
+    };
+    const messageServiceSpy = { add: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ImportDialogComponent, HttpClientTestingModule],
       providers: [
-        { provide: ImportService, useValue: importServiceSpy },
-        { provide: MessageService, useValue: messageServiceSpy },
+        { provide: ImportService, useValue: importServiceSpy as unknown as ImportService },
+        { provide: MessageService, useValue: messageServiceSpy as unknown as MessageService },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(ImportDialogComponent, {
+        set: {
+          template: '<div></div>',
+          providers: [
+            { provide: MessageService, useValue: messageServiceSpy as unknown as MessageService },
+          ],
+        },
+      })
+      .compileComponents();
 
-    importService = TestBed.inject(ImportService) as jasmine.SpyObj<ImportService>;
-    messageService = TestBed.inject(MessageService) as jasmine.SpyObj<MessageService>;
+    importService = TestBed.inject(ImportService) as unknown as typeof importServiceSpy;
 
     fixture = TestBed.createComponent(ImportDialogComponent);
+    fixture.componentRef.setInput('portfolioId', 'port-1');
     component = fixture.componentInstance;
+    messageService = fixture.debugElement.injector.get(
+      MessageService,
+    ) as unknown as typeof messageServiceSpy;
     fixture.detectChanges();
   });
 
@@ -44,10 +63,10 @@ describe('ImportDialogComponent', () => {
     it('should open dialog with reset state', () => {
       component.open();
       expect(component.visible()).toBeTruthy();
-      expect(component.currentStep()).toBe('upload');
-      expect(component.selectedFile()).toBeNull();
-      expect(component.selectedBrokerage()).toBe('');
-      expect(component.preview()).toBeNull();
+      expect(component['currentStep']()).toBe('upload');
+      expect(component['selectedFile']()).toBeNull();
+      expect(component['selectedBrokerage']()).toBe('');
+      expect(component['preview']()).toBeNull();
     });
 
     it('should close dialog', () => {
@@ -69,22 +88,22 @@ describe('ImportDialogComponent', () => {
       const event = { files: [file] };
 
       component.onFileSelect(event);
-      expect(component.selectedFile()).toBe(file);
+      expect(component['selectedFile']()).toBe(file);
     });
 
     it('should set brokerage on selection', () => {
-      component.selectedBrokerage.set('fidelity');
-      expect(component.selectedBrokerage()).toBe('fidelity');
+      component['selectedBrokerage'].set('fidelity');
+      expect(component['selectedBrokerage']()).toBe('fidelity');
     });
 
     it('should show error if no file selected for preview', async () => {
-      component.selectedFile.set(null);
+      component['selectedFile'].set(null);
       await component.doPreview();
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
-          detail: jasmine.stringContaining('select a CSV file'),
-        })
+          detail: expect.stringContaining('select a CSV file'),
+        }),
       );
     });
   });
@@ -92,7 +111,7 @@ describe('ImportDialogComponent', () => {
   describe('Preview (Step 2)', () => {
     beforeEach(() => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
-      component.selectedFile.set(file);
+      component['selectedFile'].set(file);
     });
 
     it('should transition to preview step on successful preview', async () => {
@@ -116,13 +135,13 @@ describe('ImportDialogComponent', () => {
         ],
       };
 
-      importService.preview.and.returnValue(of(mockPreview));
+      importService.preview.mockReturnValue(of(mockPreview));
 
       await component.doPreview();
       fixture.detectChanges();
 
-      expect(component.currentStep()).toBe('preview');
-      expect(component.preview()).toEqual(mockPreview);
+      expect(component['currentStep']()).toBe('preview');
+      expect(component['preview']()).toEqual(mockPreview);
       expect(importService.preview).toHaveBeenCalled();
     });
 
@@ -147,12 +166,12 @@ describe('ImportDialogComponent', () => {
         ],
       };
 
-      importService.preview.and.returnValue(of(mockPreview));
+      importService.preview.mockReturnValue(of(mockPreview));
 
       await component.doPreview();
       fixture.detectChanges();
 
-      expect(component.selectedRows().size).toBe(2);
+      expect(component['selectedRows']().size).toBe(2);
       expect(component.isRowSelected(0)).toBeTruthy();
       expect(component.isRowSelected(1)).toBeTruthy();
     });
@@ -178,33 +197,31 @@ describe('ImportDialogComponent', () => {
         ],
       };
 
-      importService.preview.and.returnValue(of(mockPreview));
+      importService.preview.mockReturnValue(of(mockPreview));
 
       await component.doPreview();
       fixture.detectChanges();
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
-          detail: jasmine.stringContaining('1 row(s) have errors'),
-        })
+          detail: expect.stringContaining('1 row(s) have errors'),
+        }),
       );
     });
 
     it('should handle preview errors', async () => {
-      importService.preview.and.returnValue(
-        throwError(() => new Error('Preview failed'))
-      );
+      importService.preview.mockReturnValue(throwError(() => new Error('Preview failed')));
 
       await component.doPreview();
       fixture.detectChanges();
 
-      expect(component.previewError()).toContain('Preview failed');
+      expect(component['previewError']()).toContain('Preview failed');
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Preview Failed',
-        })
+        }),
       );
     });
 
@@ -229,8 +246,8 @@ describe('ImportDialogComponent', () => {
         ],
       };
 
-      component.preview.set(mockPreview);
-      component.selectedRows.set(new Set([0, 1]));
+      component['preview'].set(mockPreview);
+      component['selectedRows'].set(new Set([0, 1]));
 
       component.toggleRow(0);
       expect(component.isRowSelected(0)).toBeFalsy();
@@ -263,24 +280,24 @@ describe('ImportDialogComponent', () => {
           },
         ],
       };
-      component.preview.set(mockPreview);
-      component.currentStep.set('preview');
-      component.selectedRows.set(new Set([0, 1]));
+      component['preview'].set(mockPreview);
+      component['currentStep'].set('preview');
+      component['selectedRows'].set(new Set([0, 1]));
     });
 
     it('should not allow confirm with no rows selected', () => {
-      component.selectedRows.set(new Set());
+      component['selectedRows'].set(new Set());
       component.doConfirm();
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
-          detail: jasmine.stringContaining('select at least one'),
-        })
+          detail: expect.stringContaining('select at least one'),
+        }),
       );
     });
 
-    it('should transition to confirm step and execute import', () => {
+    it('should transition to confirm step and execute import', async () => {
       const mockResult: ImportResult = {
         created: 2,
         failed: 0,
@@ -288,16 +305,17 @@ describe('ImportDialogComponent', () => {
         messages: ['Successfully imported 2 transactions'],
       };
 
-      importService.confirm.and.returnValue(of(mockResult));
+      importService.confirm.mockReturnValue(of(mockResult));
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
 
-      expect(component.currentStep()).toBe('confirm');
+      expect(component['currentStep']()).toBe('confirm');
       expect(importService.confirm).toHaveBeenCalled();
     });
 
-    it('should emit imported result on successful confirm', (done) => {
+    it('should emit imported result on successful confirm', async () => {
       const mockResult: ImportResult = {
         created: 2,
         failed: 0,
@@ -305,18 +323,18 @@ describe('ImportDialogComponent', () => {
         messages: ['Successfully imported 2 transactions'],
       };
 
-      importService.confirm.and.returnValue(of(mockResult));
+      importService.confirm.mockReturnValue(of(mockResult));
 
       component.imported.subscribe((result) => {
         expect(result).toEqual(mockResult);
-        done();
       });
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
     });
 
-    it('should close dialog after successful confirm', () => {
+    it('should close dialog after successful confirm', async () => {
       const mockResult: ImportResult = {
         created: 2,
         failed: 0,
@@ -324,16 +342,17 @@ describe('ImportDialogComponent', () => {
         messages: ['Successfully imported 2 transactions'],
       };
 
-      importService.confirm.and.returnValue(of(mockResult));
+      importService.confirm.mockReturnValue(of(mockResult));
       component.visible.set(true);
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
 
       expect(component.visible()).toBeFalsy();
     });
 
-    it('should show success message on successful confirm', () => {
+    it('should show success message on successful confirm', async () => {
       const mockResult: ImportResult = {
         created: 2,
         failed: 0,
@@ -341,20 +360,21 @@ describe('ImportDialogComponent', () => {
         messages: ['Successfully imported 2 transactions'],
       };
 
-      importService.confirm.and.returnValue(of(mockResult));
+      importService.confirm.mockReturnValue(of(mockResult));
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'success',
           summary: 'Import Successful',
-        })
+        }),
       );
     });
 
-    it('should handle partial import failures', () => {
+    it('should handle partial import failures', async () => {
       const mockResult: ImportResult = {
         created: 1,
         failed: 1,
@@ -365,50 +385,50 @@ describe('ImportDialogComponent', () => {
         ],
       };
 
-      importService.confirm.and.returnValue(of(mockResult));
+      importService.confirm.mockReturnValue(of(mockResult));
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
 
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'warn',
-          detail: jasmine.stringContaining('1 transaction(s) failed'),
-        })
+          detail: expect.stringContaining('1 transaction(s) failed'),
+        }),
       );
     });
 
-    it('should handle confirm errors', () => {
-      importService.confirm.and.returnValue(
-        throwError(() => new Error('Confirm failed'))
-      );
+    it('should handle confirm errors', async () => {
+      importService.confirm.mockReturnValue(throwError(() => new Error('Confirm failed')));
 
       component.doConfirm();
+      await flush();
       fixture.detectChanges();
 
-      expect(component.confirmError()).toContain('Confirm failed');
+      expect(component['confirmError']()).toContain('Confirm failed');
       expect(messageService.add).toHaveBeenCalledWith(
-        jasmine.objectContaining({
+        expect.objectContaining({
           severity: 'error',
           summary: 'Import Failed',
-        })
+        }),
       );
     });
 
     it('should allow returning to preview on error', () => {
-      component.currentStep.set('confirm');
-      component.confirmError.set('Some error');
+      component['currentStep'].set('confirm');
+      component['confirmError'].set('Some error');
 
       component.backToPreview();
 
-      expect(component.currentStep()).toBe('preview');
-      expect(component.confirmError()).toBeNull();
+      expect(component['currentStep']()).toBe('preview');
+      expect(component['confirmError']()).toBeNull();
     });
   });
 
   describe('Brokerage selection', () => {
     it('should have correct brokerage options', () => {
-      const options = component.brokerageOptions;
+      const options = component['brokerageOptions'];
       expect(options.length).toBe(4);
       expect(options[0].label).toBe('Auto-detect');
       expect(options[1].label).toBe('Fidelity');
@@ -418,8 +438,8 @@ describe('ImportDialogComponent', () => {
 
     it('should pass selected brokerage to preview', () => {
       const file = new File(['test'], 'test.csv', { type: 'text/csv' });
-      component.selectedFile.set(file);
-      component.selectedBrokerage.set('fidelity');
+      component['selectedFile'].set(file);
+      component['selectedBrokerage'].set('fidelity');
 
       const mockPreview: ImportPreview = {
         parsed: 0,
@@ -428,7 +448,7 @@ describe('ImportDialogComponent', () => {
         transactions: [],
       };
 
-      importService.preview.and.returnValue(of(mockPreview));
+      importService.preview.mockReturnValue(of(mockPreview));
 
       component.doPreview();
 

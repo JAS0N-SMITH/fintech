@@ -8,12 +8,18 @@ import type { Watchlist, WatchlistItem, CreateWatchlistInput, UpdateWatchlistInp
 describe('WatchlistService', () => {
   let service: WatchlistService;
   let httpMock: HttpTestingController;
-  let tickerStateServiceMock: jasmine.SpyObj<TickerStateService>;
+  let tickerStateServiceMock: {
+    subscribe: ReturnType<typeof vi.fn>;
+    unsubscribe: ReturnType<typeof vi.fn>;
+  };
 
   const baseUrl = `${environment.apiBaseUrl}/watchlists`;
 
   beforeEach(() => {
-    const spy = jasmine.createSpyObj('TickerStateService', ['subscribe', 'unsubscribe']);
+    const spy = {
+      subscribe: vi.fn(),
+      unsubscribe: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -25,7 +31,7 @@ describe('WatchlistService', () => {
 
     service = TestBed.inject(WatchlistService);
     httpMock = TestBed.inject(HttpTestingController);
-    tickerStateServiceMock = TestBed.inject(TickerStateService) as jasmine.SpyObj<TickerStateService>;
+    tickerStateServiceMock = TestBed.inject(TickerStateService) as unknown as typeof spy;
   });
 
   afterEach(() => {
@@ -33,7 +39,7 @@ describe('WatchlistService', () => {
   });
 
   describe('loadAll', () => {
-    it('should load all watchlists and update signal', (done: DoneFn) => {
+    it('should load all watchlists and update signal', () => {
       const mockWatchlists: Watchlist[] = [
         {
           id: 'wl-1',
@@ -47,7 +53,6 @@ describe('WatchlistService', () => {
       service.loadAll().subscribe(() => {
         expect(service.watchlists()).toEqual(mockWatchlists);
         expect(service.loading()).toBe(false);
-        done();
       });
 
       const req = httpMock.expectOne(baseUrl);
@@ -55,10 +60,9 @@ describe('WatchlistService', () => {
       req.flush(mockWatchlists);
     });
 
-    it('should handle empty watchlist array', (done: DoneFn) => {
+    it('should handle empty watchlist array', () => {
       service.loadAll().subscribe(() => {
         expect(service.watchlists()).toEqual([]);
-        done();
       });
 
       const req = httpMock.expectOne(baseUrl);
@@ -67,7 +71,7 @@ describe('WatchlistService', () => {
   });
 
   describe('loadById', () => {
-    it('should load watchlist by ID and load items', (done: DoneFn) => {
+    it('should load watchlist by ID and load items', () => {
       const watchlistId = 'wl-1';
       const mockWatchlist: Watchlist = {
         id: watchlistId,
@@ -90,7 +94,6 @@ describe('WatchlistService', () => {
 
       service.loadById(watchlistId).subscribe(() => {
         expect(service.selectedWatchlist()).toEqual(mockWatchlist);
-        done();
       });
 
       // First request for watchlist
@@ -106,7 +109,7 @@ describe('WatchlistService', () => {
   });
 
   describe('create', () => {
-    it('should create watchlist and prepend to list', (done: DoneFn) => {
+    it('should create watchlist and prepend to list', () => {
       const input: CreateWatchlistInput = { name: 'New Watchlist' };
       const mockWatchlist: Watchlist = {
         id: 'wl-new',
@@ -131,7 +134,6 @@ describe('WatchlistService', () => {
         const watchlists = service.watchlists();
         expect(watchlists.length).toBe(2);
         expect(watchlists[0]).toEqual(mockWatchlist);
-        done();
       });
 
       const req = httpMock.expectOne(baseUrl);
@@ -142,7 +144,7 @@ describe('WatchlistService', () => {
   });
 
   describe('update', () => {
-    it('should update watchlist in list', (done: DoneFn) => {
+    it('should update watchlist in list', () => {
       const watchlistId = 'wl-1';
       const input: UpdateWatchlistInput = { name: 'Updated Name' };
       const mockWatchlist: Watchlist = {
@@ -165,7 +167,6 @@ describe('WatchlistService', () => {
 
       service.update(watchlistId, input).subscribe(() => {
         expect(service.watchlists()[0].name).toBe('Updated Name');
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/${watchlistId}`);
@@ -175,7 +176,7 @@ describe('WatchlistService', () => {
   });
 
   describe('delete', () => {
-    it('should delete watchlist from list', (done: DoneFn) => {
+    it('should delete watchlist from list', () => {
       const watchlistId = 'wl-1';
       service['_watchlists'].set([
         {
@@ -189,7 +190,6 @@ describe('WatchlistService', () => {
 
       service.delete(watchlistId).subscribe(() => {
         expect(service.watchlists().length).toBe(0);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/${watchlistId}`);
@@ -199,7 +199,7 @@ describe('WatchlistService', () => {
   });
 
   describe('addItem', () => {
-    it('should add item and subscribe to ticker price updates', (done: DoneFn) => {
+    it('should add item and subscribe to ticker price updates', () => {
       const watchlistId = 'wl-1';
       const input: CreateWatchlistItemInput = { symbol: 'AAPL' };
       const mockItem: WatchlistItem = {
@@ -214,7 +214,6 @@ describe('WatchlistService', () => {
         expect(service.items().length).toBe(1);
         expect(service.items()[0]).toEqual(mockItem);
         expect(tickerStateServiceMock.subscribe).toHaveBeenCalledWith(['AAPL']);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/${watchlistId}/items`);
@@ -224,7 +223,7 @@ describe('WatchlistService', () => {
   });
 
   describe('removeItem', () => {
-    it('should remove item and unsubscribe from ticker', (done: DoneFn) => {
+    it('should remove item and unsubscribe from ticker', () => {
       const watchlistId = 'wl-1';
       const symbol = 'AAPL';
       service['_items'].set([
@@ -240,7 +239,6 @@ describe('WatchlistService', () => {
       service.removeItem(watchlistId, symbol).subscribe(() => {
         expect(service.items().length).toBe(0);
         expect(tickerStateServiceMock.unsubscribe).toHaveBeenCalledWith([symbol]);
-        done();
       });
 
       const req = httpMock.expectOne(`${baseUrl}/${watchlistId}/items/${symbol}`);
