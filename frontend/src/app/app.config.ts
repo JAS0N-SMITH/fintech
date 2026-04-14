@@ -32,11 +32,16 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: (
+        auth: AuthService,
         _priceAlerts: PriceAlertService,
         _portfolioAlerts: PortfolioAlertService,
         prefs: UserPreferencesService,
-      ) => () => prefs.load().toPromise().catch(() => {}),
-      deps: [PriceAlertService, PortfolioAlertService, UserPreferencesService],
+      ) => async () => {
+        // Wait for auth session restore to complete before loading preferences
+        await auth.waitForRestore();
+        return prefs.load().toPromise().catch(() => {});
+      },
+      deps: [AuthService, PriceAlertService, PortfolioAlertService, UserPreferencesService],
       multi: true,
     },
     providePrimeNG({
