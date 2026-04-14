@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/huchknows/fintech/backend/internal/model"
 )
 
@@ -18,10 +16,15 @@ func TestAdminRepository_ListUsers(t *testing.T) {
 	repo := NewAdminRepository(db)
 	ctx := context.Background()
 
-	// Insert test users
-	insertTestUser(t, db, "user-1", "alice@example.com", "Alice", "user")
-	insertTestUser(t, db, "user-2", "bob@example.com", "Bob", "admin")
-	insertTestUser(t, db, "user-3", "charlie@example.com", "Charlie", "user")
+	// Insert test users (auth trigger creates profiles automatically)
+	u1 := insertTestUser(t, db)
+	u2 := insertTestUser(t, db)
+	u3 := insertTestUser(t, db)
+
+	// Update profiles with display_name and role
+	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Alice", "user", u1)
+	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Bob", "admin", u2)
+	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Charlie", "user", u3)
 
 	tests := []struct {
 		name       string
@@ -88,8 +91,8 @@ func TestAdminRepository_UpdateUserRole(t *testing.T) {
 	repo := NewAdminRepository(db)
 	ctx := context.Background()
 
-	userID := "user-update-" + uuid.New().String()[:8]
-	insertTestUser(t, db, userID, "test@example.com", "Test User", "user")
+	userID := insertTestUser(t, db)
+	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Test User", "user", userID)
 
 	tests := []struct {
 		name      string
@@ -153,8 +156,8 @@ func TestAdminRepository_InsertAndListAuditLog(t *testing.T) {
 	repo := NewAdminRepository(db)
 	ctx := context.Background()
 
-	userID := "admin-user-" + uuid.New().String()[:8]
-	targetID := "target-user-" + uuid.New().String()[:8]
+	userID := insertTestUser(t, db)
+	targetID := insertTestUser(t, db)
 
 	// Insert test audit entries
 	before := json.RawMessage(`{"role":"user"}`)
@@ -278,8 +281,8 @@ func TestAdminRepository_AuditLogDateFilter(t *testing.T) {
 	repo := NewAdminRepository(db)
 	ctx := context.Background()
 
-	userID := "audit-user-" + uuid.New().String()[:8]
-	targetID := "target-" + uuid.New().String()[:8]
+	userID := insertTestUser(t, db)
+	targetID := insertTestUser(t, db)
 
 	// Insert entries at different times
 	now := time.Now().UTC()
@@ -347,23 +350,3 @@ func TestAdminRepository_AuditLogDateFilter(t *testing.T) {
 	}
 }
 
-// Helper: insert a test user into the database
-func insertTestUser(t *testing.T, db interface{ Exec(context.Context, string, ...interface{}) error }, id, email, displayName, role string) {
-	q := `
-		INSERT INTO public.profiles (id, display_name, role)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (id) DO NOTHING
-	`
-
-	if err := db.Exec(context.Background(), q, id, displayName, role); err != nil {
-		t.Fatalf("failed to insert test user: %v", err)
-	}
-
-	// Also insert into auth.users (stub with just email)
-	authQ := `
-		INSERT INTO auth.users (id, email)
-		VALUES ($1, $2)
-		ON CONFLICT (id) DO NOTHING
-	`
-	_ = db.Exec(context.Background(), authQ, id, email) // Ignore error if already exists
-}

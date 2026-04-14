@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/huchknows/fintech/backend/internal/model"
@@ -42,6 +44,9 @@ func (r *profileRepo) GetByID(ctx context.Context, id string) (*model.UserProfil
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
 	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, model.ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
