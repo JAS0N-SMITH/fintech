@@ -8,6 +8,7 @@ import { MessageService } from 'primeng/api';
 import { authInterceptor } from './core/auth.interceptor';
 import { retryInterceptor } from './core/retry.interceptor';
 import { GlobalErrorHandler } from './core/global-error-handler';
+import { AuthService } from './core/auth.service';
 import { PriceAlertService } from './core/alerts/price-alert.service';
 import { PortfolioAlertService } from './core/alerts/portfolio-alert.service';
 import { UserPreferencesService } from './core/user-preferences.service';
@@ -22,6 +23,12 @@ export const appConfig: ApplicationConfig = {
     ),
     MessageService,
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (auth: AuthService) => () => auth.waitForRestore(),
+      deps: [AuthService],
+      multi: true,
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: (

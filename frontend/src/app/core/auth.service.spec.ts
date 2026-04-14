@@ -173,6 +173,44 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(false);
       expect(service.isLoading()).toBe(false);
     });
+
+    it('waitForRestore resolves when session restore completes', async () => {
+      setup();
+      const restorePromise = service.waitForRestore();
+
+      // Promise should still be pending before the HTTP response
+      let resolved = false;
+      restorePromise.then(() => {
+        resolved = true;
+      });
+      await flush();
+      expect(resolved).toBe(false);
+
+      // Complete the HTTP request
+      httpMock
+        .expectOne(SESSION_URL)
+        .flush({ access_token: 'at', expires_in: 900, token_type: 'bearer', user: mockUser });
+
+      // Wait for the promise to resolve
+      await restorePromise;
+      expect(resolved).toBe(true);
+    });
+
+    it('waitForRestore resolves immediately if restore already completed', async () => {
+      setup();
+      httpMock
+        .expectOne(SESSION_URL)
+        .flush({ access_token: 'at', expires_in: 900, token_type: 'bearer', user: mockUser });
+      await flush();
+
+      // Now restore is done; waitForRestore should resolve immediately
+      let resolved = false;
+      service.waitForRestore().then(() => {
+        resolved = true;
+      });
+      await flush();
+      expect(resolved).toBe(true);
+    });
   });
 
   // -------------------------------------------------------------------------

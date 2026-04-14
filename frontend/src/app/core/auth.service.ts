@@ -61,9 +61,36 @@ export class AuthService implements OnDestroy {
   private authSubscription: { unsubscribe: () => void } | null = null;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private restoreInFlight = true;
+  private restorePromise: Promise<void> | null = null;
 
   constructor() {
     this.initAuthListener();
+  }
+
+  /**
+   * Waits for the initial session restoration attempt to complete.
+   * Call this in an APP_INITIALIZER to ensure the session is ready before
+   * other initializers make authenticated requests.
+   * Returns immediately if restore has already completed.
+   */
+  waitForRestore(): Promise<void> {
+    // If restore is already done, return a resolved promise immediately
+    if (!this.restoreInFlight) {
+      return Promise.resolve();
+    }
+
+    // If we haven't started tracking the restore promise yet, create one.
+    if (this.restorePromise === null) {
+      this.restorePromise = new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (!this.restoreInFlight) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
+      });
+    }
+    return this.restorePromise;
   }
 
   /**
