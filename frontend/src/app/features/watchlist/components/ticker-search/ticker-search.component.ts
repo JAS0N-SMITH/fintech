@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   inject,
   input,
   output,
@@ -12,6 +13,9 @@ import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
 import { MessageService } from 'primeng/api';
 import { WatchlistService } from '../../services/watchlist.service';
+import { MarketDataService } from '../../../../core/market-data.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import type { StockSymbol } from '../../../portfolio/models/market-data.model';
 
 /**
  * TickerSearchComponent provides an autocomplete search for adding tickers to a watchlist.
@@ -44,7 +48,12 @@ import { WatchlistService } from '../../services/watchlist.service';
           emptyMessage="No symbols found"
           class="w-full"
           field="symbol"
-        />
+        >
+          <ng-template pTemplate="item" let-item>
+            <span class="font-semibold">{{ item.symbol }}</span>
+            <span class="text-sm text-surface-500 ml-2">{{ item.description }}</span>
+          </ng-template>
+        </p-autoComplete>
       </div>
       <div>
         <label for="target-price" class="block text-sm font-medium mb-2">
@@ -78,6 +87,8 @@ import { WatchlistService } from '../../services/watchlist.service';
 export class TickerSearchComponent {
   private readonly watchlistService = inject(WatchlistService);
   private readonly messages = inject(MessageService);
+  private readonly marketDataService = inject(MarketDataService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly watchlistId = input.required<string>();
   readonly itemAdded = output<string>();
@@ -86,47 +97,40 @@ export class TickerSearchComponent {
   protected readonly searchInput = signal('');
   protected readonly selectedSymbol = signal<string>('');
   protected readonly targetPrice = signal<number | null>(null);
-  protected readonly suggestions = signal<Array<{ symbol: string }>>([]);
+  protected readonly suggestions = signal<StockSymbol[]>([]);
   protected readonly isSearching = signal(false);
   protected readonly isAdding = signal(false);
 
   /**
-   * Handle search input changes.
-   * For MVP, provide a static list of popular symbols or validate format.
-   * In future, could integrate with market data API for real search.
+   * Handle search input changes by querying the market data API.
+   * Fetches supported symbols from the backend.
    */
   protected onSearch(event: { query: string }): void {
-    const query = event.query.toUpperCase().trim();
-    if (!query) {
+    const q = event.query.trim();
+    if (!q) {
       this.suggestions.set([]);
       return;
     }
 
-    // Static list of popular symbols for MVP autocomplete
-    const popular = [
-      'AAPL',
-      'GOOGL',
-      'MSFT',
-      'AMZN',
-      'NVDA',
-      'META',
-      'TSLA',
-      'BERKB',
-      'JPM',
-      'V',
-      'WMT',
-      'PG',
-      'XOM',
-      'COST',
-      'DIS',
-    ];
-
-    // Filter symbols that match the query
-    const filtered = popular
-      .filter((symbol) => symbol.includes(query))
-      .map((symbol) => ({ symbol }));
-
-    this.suggestions.set(filtered);
+    this.isSearching.set(true);
+    this.marketDataService
+      .searchSymbols(q, 20)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (results) => {
+          this.suggestions.set(results);
+          this.isSearching.set(false);
+        },
+        error: () => {
+          this.suggestions.set([]);
+          this.isSearching.set(false);
+          this.messages.add({
+            severity: 'error',
+            summary: 'Search failed',
+            detail: 'Unable to search symbols. Please try again.',
+          });
+        },
+      });
   }
 
   protected addItem(): void {

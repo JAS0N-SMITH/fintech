@@ -18,17 +18,26 @@
   <!-- Symbol -->
   <div class="flex flex-col gap-1">
     <label for="tx-symbol" class="font-medium text-sm">Symbol <span class="text-red-500">*</span></label>
-    <input
-      pInputText
+    <p-autoComplete
       id="tx-symbol"
       formControlName="symbol"
+      [suggestions]="symbolSuggestions()"
+      optionLabel="symbol"
+      optionValue="symbol"
+      (completeMethod)="onSymbolSearch($event)"
+      [forceSelection]="false"
       placeholder="e.g. AAPL"
-      class="w-full uppercase"
+      class="w-full"
       (blur)="onSymbolBlur()"
       aria-required="true"
       [attr.aria-invalid]="form.controls.symbol.invalid && form.controls.symbol.touched"
       aria-describedby="tx-symbol-error"
-    />
+    >
+      <ng-template pTemplate="item" let-item>
+        <span class="font-semibold">{{ item.symbol }}</span>
+        <span class="text-sm text-surface-500 ml-2">{{ item.description }}</span>
+      </ng-template>
+    </p-autoComplete>
     @if (form.controls.symbol.invalid && form.controls.symbol.touched) {
       <small id="tx-symbol-error" class="text-red-500">
         @if (form.controls.symbol.hasError('required')) { Symbol is required. }

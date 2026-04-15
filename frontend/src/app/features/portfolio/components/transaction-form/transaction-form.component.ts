@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   inject,
   OnDestroy,
   OnInit,
@@ -20,7 +21,11 @@ import { InputNumber } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { Textarea } from 'primeng/textarea';
+import { AutoComplete } from 'primeng/autocomplete';
+import { MarketDataService } from '../../../../core/market-data.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { CreateTransactionInput, TransactionType } from '../../models/transaction.model';
+import type { StockSymbol } from '../../models/market-data.model';
 
 const TRANSACTION_TYPE_OPTIONS: { label: string; value: TransactionType }[] = [
   { label: 'Buy', value: 'buy' },
@@ -48,17 +53,19 @@ const TRANSACTION_TYPE_OPTIONS: { label: string; value: TransactionType }[] = [
   imports: [
     ReactiveFormsModule,
     Button,
-    InputText,
     InputNumber,
     Select,
     DatePicker,
     Textarea,
+    AutoComplete,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './transaction-form.component.html',
 })
 export class TransactionFormComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
+  private readonly marketDataService = inject(MarketDataService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Emitted with the validated input data on successful submit. */
   readonly submitted = output<CreateTransactionInput>();
@@ -69,6 +76,7 @@ export class TransactionFormComponent implements OnInit, OnDestroy {
   protected readonly isSubmitting = signal(false);
   protected readonly typeOptions = TRANSACTION_TYPE_OPTIONS;
   protected readonly today = new Date();
+  protected readonly symbolSuggestions = signal<StockSymbol[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
     transaction_type: ['buy' as TransactionType, Validators.required],
@@ -135,10 +143,33 @@ export class TransactionFormComponent implements OnInit, OnDestroy {
     setRequired(dividend_per_share, type === 'dividend' || type === 'reinvested_dividend');
   }
 
+  /** Search for symbols as the user types in the autocomplete. */
+  protected onSymbolSearch(event: { query: string }): void {
+    const q = event.query.trim();
+    if (!q) {
+      this.symbolSuggestions.set([]);
+      return;
+    }
+
+    this.marketDataService
+      .searchSymbols(q, 20)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (results) => {
+          this.symbolSuggestions.set(results);
+        },
+        error: () => {
+          this.symbolSuggestions.set([]);
+        },
+      });
+  }
+
   /** Uppercases the symbol input on blur to match backend validation. */
   protected onSymbolBlur(): void {
     const ctrl = this.form.controls.symbol;
-    ctrl.setValue(ctrl.value.toUpperCase(), { emitEvent: false });
+    if (ctrl.value) {
+      ctrl.setValue(ctrl.value.toUpperCase(), { emitEvent: false });
+    }
   }
 
   onSubmit(): void {

@@ -48,9 +48,19 @@
       role="img"
       [attr.aria-label]="symbol() + ' price chart'"
     />
+  } @else if (barsUnavailable()) {
+    <p-card>
+      <div class="text-center py-6">
+        <i class="pi pi-chart-line text-4xl text-surface-400 mb-3 block"></i>
+        <p class="font-semibold text-surface-600 dark:text-surface-300">Historical chart unavailable</p>
+        <p class="text-sm text-surface-500 mt-1">
+          Historical data for {{ symbol() }} is not available on the current market data plan.
+        </p>
+      </div>
+    </p-card>
   } @else {
-    <p-card class="text-center">
-      <p class="text-gray-500">No chart data available</p>
+    <p-card>
+      <p class="text-center text-gray-500">No chart data available for this time range.</p>
     </p-card>
   }
 

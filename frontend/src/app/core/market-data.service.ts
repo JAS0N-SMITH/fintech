@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import type { Bar, Quote, Timeframe } from '../features/portfolio/models/market-data.model';
+import type { Bar, Quote, Timeframe, StockSymbol } from '../features/portfolio/models/market-data.model';
 
 const BASE = `${environment.apiBaseUrl}`;
 
@@ -52,5 +52,19 @@ export class MarketDataService {
     if (start) params = params.set('start', start);
     if (end) params = params.set('end', end);
     return this.http.get<Bar[]>(`${BASE}/bars/${encodeURIComponent(symbol)}`, { params });
+  }
+
+  /**
+   * Searches for stock symbols by query string.
+   * Filters by case-insensitive prefix match on symbol and substring match on description.
+   *
+   * @param query Search term (optional)
+   * @param limit Maximum number of results (1-50, default 20)
+   */
+  searchSymbols(query: string = '', limit: number = 20): Observable<StockSymbol[]> {
+    let params = new HttpParams();
+    if (query) params = params.set('q', query);
+    if (limit && limit !== 20) params = params.set('limit', limit.toString());
+    return this.http.get<StockSymbol[]>(`${BASE}/symbols`, { params });
   }
 }

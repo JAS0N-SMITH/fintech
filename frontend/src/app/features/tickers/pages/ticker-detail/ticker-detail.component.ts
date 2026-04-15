@@ -9,6 +9,7 @@ import {
   OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -76,6 +77,7 @@ export class TickerDetailComponent implements OnInit {
   readonly quote = signal<Quote | null>(null);
   readonly bars = signal<Bar[]>([]);
   readonly barsLoading = signal(false);
+  readonly barsUnavailable = signal(false);
   readonly quoteLoading = signal(true);
 
   // Time range selector
@@ -124,6 +126,9 @@ export class TickerDetailComponent implements OnInit {
       // Subscribe to WebSocket for this symbol
       this.tickerStateService.subscribe([sym]);
 
+      // Reset bars state for new symbol
+      this.barsUnavailable.set(false);
+
       // Load quote snapshot
       this.loadQuote(sym);
 
@@ -161,6 +166,8 @@ export class TickerDetailComponent implements OnInit {
 
   /**
    * Load historical bars for the symbol and timeframe.
+   * If the symbol is unsupported on the current plan (422) or forbidden (403),
+   * mark bars as unavailable rather than silently showing empty state.
    */
   private loadBars(symbol: string, timeframe: Timeframe): void {
     this.barsLoading.set(true);
@@ -169,8 +176,12 @@ export class TickerDetailComponent implements OnInit {
         this.bars.set(bars);
         this.barsLoading.set(false);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.barsLoading.set(false);
+        // 422 = unsupported symbol on plan; 403 = plan restriction; otherwise transient
+        if (err.status === 422 || err.status === 403) {
+          this.barsUnavailable.set(true);
+        }
       },
     });
   }

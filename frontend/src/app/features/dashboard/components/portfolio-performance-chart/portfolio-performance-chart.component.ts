@@ -12,8 +12,8 @@ import {
   afterRenderEffect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { of, from } from 'rxjs';
+import { map, catchError, concatMap, toArray } from 'rxjs/operators';
 import type { Subscription } from 'rxjs';
 import {
   createChart,
@@ -173,16 +173,18 @@ export class PortfolioPerformanceChartComponent {
       return;
     }
 
-    // Fetch bars in parallel for all symbols
-    this.activeSubscription = forkJoin(
-      symbols.map((sym) =>
+    // Fetch bars sequentially to respect Finnhub rate limit (60 req/min = 1 req/sec).
+    // Using RxJS concatMap to ensure requests are processed one at a time (not in parallel).
+    this.activeSubscription = from(symbols).pipe(
+      concatMap((sym) =>
         this.marketDataService
           .getHistoricalBars(sym, '1D', start, end)
           .pipe(
             map((bars) => ({ sym, bars })),
             catchError(() => of({ sym, bars: [] })) // Tolerate individual failures
           )
-      )
+      ),
+      toArray(), // Collect all results into an array
     ).subscribe({
       next: (results: SymbolBars[]) => {
         // Derive portfolio values from transactions + bars

@@ -40,6 +40,19 @@ export interface Bar {
 /** Candle resolution for historical bar requests. */
 export type Timeframe = '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL';
 
+/**
+ * A listed stock symbol returned from the symbols search endpoint.
+ * Supports browsing and selection in watchlist and transaction forms.
+ */
+export interface StockSymbol {
+  symbol: string;
+  description: string;
+  display_symbol: string;
+  type: string;
+  mic: string;
+  currency: string;
+}
+
 /** WebSocket connection lifecycle state. */
 export type ConnectionState = 'connected' | 'reconnecting' | 'disconnected';
 
