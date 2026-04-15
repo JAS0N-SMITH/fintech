@@ -44,60 +44,60 @@ This eliminates manual restart cycles during iteration. See ADR 012 for the rati
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Browser                               │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Angular v21 (Zoneless)                     │  │
-│  │                                                         │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  │  │
-│  │  │  AuthService │  │ TickerState  │  │  Portfolio    │  │  │
-│  │  │  (Signals)   │  │ Service      │  │  Service      │  │  │
-│  │  │             │  │ (Signals +   │  │  (Signals)    │  │  │
-│  │  │             │  │  WebSocket)  │  │              │  │  │
-│  │  └──────┬──────┘  └──────┬───────┘  └──────┬───────┘  │  │
-│  │         │                │                  │          │  │
-│  │         │         ┌──────┴───────┐          │          │  │
-│  │         │         │  RxJS        │          │          │  │
-│  │         │         │  WebSocket   │          │          │  │
-│  │         │         │  Connection  │          │          │  │
-│  │         │         └──────┬───────┘          │          │  │
-│  └─────────┼────────────────┼──────────────────┼──────────┘  │
-│            │                │                  │              │
-└────────────┼────────────────┼──────────────────┼──────────────┘
+│                        Browser                              │
+│                                                             │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              Angular v21 (Zoneless)                    │ │
+│  │                                                        │ │
+│  │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐   │ │
+│  │  │  AuthService│  │ TickerState  │  │  Portfolio   │   │ │
+│  │  │  (Signals)  │  │ Service      │  │  Service     │   │ │
+│  │  │             │  │ (Signals +   │  │  (Signals)   │   │ │
+│  │  │             │  │  WebSocket)  │  │              │   │ │
+│  │  └──────┬──────┘  └──────┬───────┘  └──────┬───────┘   │ │
+│  │         │                │                  │          │ │
+│  │         │         ┌──────┴───────┐          │          │ │
+│  │         │         │  RxJS        │          │          │ │
+│  │         │         │  WebSocket   │          │          │ │
+│  │         │         │  Connection  │          │          │ │
+│  │         │         └──────┬───────┘          │          │ │
+│  └─────────┼────────────────┼──────────────────┼──────────┘ │
+│            │                │                  │            │
+└────────────┼────────────────┼──────────────────┼────────────┘
              │ HTTPS          │ WSS              │ HTTPS
              │ (JWT)          │ (JWT)            │ (JWT)
              ▼                ▼                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Go / Gin API                             │
-│                                                              │
+┌───────────────────────────────────────────────────────────────┐
+│                     Go / Gin API                              │
+│                                                               │
 │  Middleware Chain:                                            │
-│  RequestID → Logger → Recovery → CORS → RateLimit            │
-│                         │                                    │
-│              ┌──────────┴──────────┐                         │
-│              │                     │                         │
-│         Public Routes        Protected Routes                │
+│  RequestID → Logger → Recovery → CORS → RateLimit             │
+│                         │                                     │
+│              ┌──────────┴──────────┐                          │
+│              │                     │                          │
+│         Public Routes        Protected Routes                 │
 │         /auth/*              Auth Middleware                  │
-│                              │           │                   │
-│                         User Routes   Admin Routes           │
-│                         /portfolios   RequireRole("admin")   │
+│                              │           │                    │
+│                         User Routes   Admin Routes            │
+│                         /portfolios   RequireRole("admin")    │
 │                         /transactions AuditLog Middleware     │
-│                         /watchlists   /admin/*               │
-│                              │                               │
-│  ┌───────────────────────────┼─────────────────────────┐     │
-│  │                    Service Layer                     │     │
-│  │  Defines interfaces it depends on:                   │     │
-│  │  - PortfolioRepository                               │     │
-│  │  - TransactionRepository                             │     │
-│  │  - MarketDataProvider                                │     │
-│  └──────────┬────────────────────────────┬─────────────┘     │
-│             │                            │                   │
-│  ┌──────────▼──────────┐    ┌────────────▼──────────────┐    │
+│                         /watchlists   /admin/*                │
+│                              │                                │
+│  ┌───────────────────────────┼─────────────────────────┐      │
+│  │                    Service Layer                    │      │
+│  │  Defines interfaces it depends on:                  │      │
+│  │  - PortfolioRepository                              │      │
+│  │  - TransactionRepository                            │      │
+│  │  - MarketDataProvider                               │      │
+│  └──────────┬────────────────────────────┬─────────────┘      │
+│             │                            │                    │
+│  ┌──────────▼──────────┐    ┌────────────▼─────────────-─┐    │
 │  │  Repository Layer   │    │   Provider Layer           │    │
 │  │  (pgx → Postgres)   │    │   (ADR 015: multi-provider)│    │
 │  │                     │    │                            │    │
 │  │  - PortfolioRepo    │    │   ┌────────────────────┐   │    │
 │  │  - TransactionRepo  │    │   │ MarketDataProvider │   │    │
-│  │  - WatchlistRepo    │    │   │ interface           │   │    │
+│  │  - WatchlistRepo    │    │   │ interface          │   │    │
 │  │  - AuditLogRepo     │    │   ├────────────────────┤   │    │
 │  │                     │    │   │ FallbackProvider   │   │    │
 │  │                     │    │   │ (routing wrapper)  │   │    │
@@ -118,15 +118,15 @@ This eliminates manual restart cycles during iteration. See ADR 012 for the rati
 ┌──────────────────────┐              │                      │
 │   Supabase Postgres  │              ▼                      ▼
 │                      │  ┌─────────────────────┐  ┌──────────────────────┐
-│  - profiles          │  │     Finnhub API      │  │    Polygon.io API    │
-│  - portfolios        │  │                      │  │                      │
-│  - transactions      │  │  REST: /quote        │  │  REST: /aggs/ticker  │
-│  - watchlists        │  │  WebSocket: ticks    │  │  Historical OHLCV    │
-│  - watchlist_items   │  │  REST: /stock/symbol │  │  bars (years of      │
-│  - audit_log         │  │                      │  │  history, 1-min res) │
-│                      │  │  Free tier:          │  │                      │
-│  Auth: Supabase Auth │  │  60 req/min          │  │  Free tier:          │
-│  RLS: defense layer  │  │  50 WS connections   │  │  5 req/min           │
+│  - profiles          │  │     Finnhub API     │  │    Polygon.io API    │
+│  - portfolios        │  │                     │  │                      │
+│  - transactions      │  │  REST: /quote       │  │  REST: /aggs/ticker  │
+│  - watchlists        │  │  WebSocket: ticks   │  │  Historical OHLCV    │
+│  - watchlist_items   │  │  REST: /stock/symbol│  │  bars (years of      │
+│  - audit_log         │  │                     │  │  history, 1-min res) │
+│                      │  │  Free tier:         │  │                      │
+│  Auth: Supabase Auth │  │  60 req/min         │  │  Free tier:          │
+│  RLS: defense layer  │  │  50 WS connections  │  │  5 req/min           │
 │                      │  └─────────────────────┘  └──────────────────────┘
 └──────────────────────┘
 ```
