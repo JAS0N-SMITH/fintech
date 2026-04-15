@@ -99,9 +99,12 @@ func (s *marketDataService) GetQuote(ctx context.Context, symbol string) (*model
 }
 
 // GetHistoricalBars returns cached bars if still fresh, otherwise fetches from the provider.
-// The cache key encodes all request parameters to avoid cross-contamination.
+// The cache key normalises start/end to UTC calendar dates so that repeated page loads
+// with slightly different sub-second timestamps share the same cache entry.
 func (s *marketDataService) GetHistoricalBars(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-	key := fmt.Sprintf("%s:%s:%d:%d", symbol, tf, start.Unix(), end.Unix())
+	startDay := start.UTC().Truncate(24 * time.Hour)
+	endDay := end.UTC().Truncate(24 * time.Hour)
+	key := fmt.Sprintf("%s:%s:%s:%s", symbol, tf, startDay.Format("2006-01-02"), endDay.Format("2006-01-02"))
 
 	// Fast path: read lock, check cache.
 	s.mu.RLock()

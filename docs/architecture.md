@@ -93,17 +93,20 @@ This eliminates manual restart cycles during iteration. See ADR 012 for the rati
 │             │                            │                   │
 │  ┌──────────▼──────────┐    ┌────────────▼──────────────┐    │
 │  │  Repository Layer   │    │   Provider Layer           │    │
-│  │  (pgx → Postgres)   │    │   (Finnhub REST + WS)     │    │
+│  │  (pgx → Postgres)   │    │   (ADR 015: multi-provider)│    │
 │  │                     │    │                            │    │
 │  │  - PortfolioRepo    │    │   ┌────────────────────┐   │    │
 │  │  - TransactionRepo  │    │   │ MarketDataProvider │   │    │
 │  │  - WatchlistRepo    │    │   │ interface           │   │    │
 │  │  - AuditLogRepo     │    │   ├────────────────────┤   │    │
-│  │                     │    │   │ FinnhubProvider     │   │    │
-│  │                     │    │   │ (current)           │   │    │
+│  │                     │    │   │ FallbackProvider   │   │    │
+│  │                     │    │   │ (routing wrapper)  │   │    │
 │  │                     │    │   ├────────────────────┤   │    │
-│  │                     │    │   │ AlpacaProvider     │   │    │
-│  │                     │    │   │ (future)           │   │    │
+│  │                     │    │   │ FinnhubProvider    │   │    │
+│  │                     │    │   │ quotes+stream+sym  │   │    │
+│  │                     │    │   ├────────────────────┤   │    │
+│  │                     │    │   │ PolygonProvider    │   │    │
+│  │                     │    │   │ historical bars    │   │    │
 │  │                     │    │   ├────────────────────┤   │    │
 │  │                     │    │   │ MockProvider       │   │    │
 │  │                     │    │   │ (testing)          │   │    │
@@ -111,21 +114,21 @@ This eliminates manual restart cycles during iteration. See ADR 012 for the rati
 │             │               └────────────┬───────────────┘    │
 └─────────────┼────────────────────────────┼────────────────────┘
               │                            │
-              ▼                            ▼
-┌──────────────────────┐     ┌──────────────────────────┐
-│   Supabase Postgres  │     │       Finnhub API        │
-│                      │     │                          │
-│  - profiles          │     │  REST: /quote, /candle   │
-│  - portfolios        │     │  WebSocket: streaming    │
-│  - transactions      │     │  ticks                   │
-│  - watchlists        │     │                          │
-│  - watchlist_items   │     │  Free tier:              │
-│  - audit_log         │     │  60 req/min              │
-│                      │     │  30 WS connections       │
-│  Auth: Supabase Auth │     │                          │
-│  RLS: defense layer  │     │  Upgrade path:           │
-│                      │     │  Alpaca, Polygon         │
-└──────────────────────┘     └──────────────────────────┘
+              ▼                       ┌────┴─────────────────┐
+┌──────────────────────┐              │                      │
+│   Supabase Postgres  │              ▼                      ▼
+│                      │  ┌─────────────────────┐  ┌──────────────────────┐
+│  - profiles          │  │     Finnhub API      │  │    Polygon.io API    │
+│  - portfolios        │  │                      │  │                      │
+│  - transactions      │  │  REST: /quote        │  │  REST: /aggs/ticker  │
+│  - watchlists        │  │  WebSocket: ticks    │  │  Historical OHLCV    │
+│  - watchlist_items   │  │  REST: /stock/symbol │  │  bars (years of      │
+│  - audit_log         │  │                      │  │  history, 1-min res) │
+│                      │  │  Free tier:          │  │                      │
+│  Auth: Supabase Auth │  │  60 req/min          │  │  Free tier:          │
+│  RLS: defense layer  │  │  50 WS connections   │  │  5 req/min           │
+│                      │  └─────────────────────┘  └──────────────────────┘
+└──────────────────────┘
 ```
 
 ---
@@ -148,7 +151,7 @@ This eliminates manual restart cycles during iteration. See ADR 012 for the rati
 
 1. User opens dashboard — Angular TickerStateService identifies active tickers from portfolio holdings
 2. TickerStateService calls Go API REST endpoint for full Quote snapshot per ticker
-3. Go API checks in-memory cache (TTL-based) — cache hit returns cached data, cache miss fetches from Finnhub REST API, caches result, returns to Angular
+3. Go API checks in-memory cache (TTL-based, keyed by symbol + timeframe + UTC date range) — cache hit returns cached data immediately with no provider call; cache miss fetches from the appropriate provider (Polygon for historical bars, Finnhub for live quotes), caches result, returns to Angular
 4. TickerStateService stores snapshot in a signal per ticker (full state: price, dayHigh, dayLow, open, previousClose, volume)
 5. TickerStateService opens WebSocket connection to Go API, subscribes to active symbols
 6. Go WebSocket relay maintains a persistent connection to Finnhub WebSocket, fans out PriceTick messages to connected Angular clients
@@ -201,7 +204,7 @@ Roles stored in profiles table. JWT claims include role. Go middleware checks ro
 
 - Passwords: managed entirely by Supabase Auth (bcrypt hashing, never touches Go API)
 - JWTs: access token in memory only, refresh token in HTTP-only cookie
-- API keys (Finnhub, Supabase): environment variables, never in code or config files
+- API keys (Finnhub, Polygon.io, Supabase): environment variables, never in code or config files
 - Financial data: not classified as PII for this app (no real money, no account numbers), but still not logged in plaintext
 - Audit log: masks PII fields before storage, append-only table
 
@@ -214,7 +217,8 @@ Roles stored in profiles table. JWT claims include role. Go middleware checks ro
 | Frontend framework | Angular v21 | Signals-first, zoneless, strong opinions for large apps, learning goal |
 | Backend framework | Go / Gin | Concurrent request handling, compiled binary, learning goal |
 | Database | Supabase (Postgres) | Managed hosting, built-in auth, familiar from Grooping project |
-| Market data | Finnhub | Best free tier for real-time data, WebSocket support, provider-abstracted |
+| Market data (real-time) | Finnhub | Best free tier for quotes, WebSocket streaming, symbol search (60 req/min) |
+| Market data (historical) | Polygon.io | Deep OHLCV history, 1-min resolution, primary for chart bar data (ADR 015) |
 | Financial charts | TradingView Lightweight Charts | Purpose-built for financial data, 40KB, 50K+ candles performant |
 | General charts | Chart.js (ng2-charts) | Pie/doughnut/scatter for allocation views, ~67KB, well-supported |
 | Component library | PrimeNG | Extensive component set, strong data tables, built-in ARIA, prior experience |
@@ -265,7 +269,7 @@ Angular builds to static files — deployable to any CDN or static host. Go comp
 
 **Transactions as source of truth** — Holdings, portfolio values, and allocation percentages are always derived from transaction records. No denormalized holdings table. This eliminates sync bugs at the cost of computation, which is negligible at expected scale. Materialized views can be added later if needed.
 
-**Provider abstraction** — Market data access goes through a Go interface defined at the service layer. FinnhubProvider is the current implementation. Swapping to Alpaca or Polygon means writing a new struct with the same methods. No changes to services, handlers, or Angular code.
+**Multi-provider market data** — Market data access goes through a `MarketDataProvider` interface defined at the service layer. `FallbackProvider` wraps two specialized implementations: Polygon.io is primary for historical bars (deep history, 1-min resolution); Finnhub is primary for real-time quotes, symbol search, and WebSocket streaming. If Polygon fails, requests fall back to Finnhub transparently. Adding a third provider means implementing the interface — no changes to services, handlers, or Angular code. See ADR 015.
 
 **Snapshot-plus-deltas** — Dashboard loads full quote data via REST, then WebSocket ticks update only what changes. Reconnection re-fetches snapshots before resuming stream. This is the standard pattern used by professional trading platforms.
 

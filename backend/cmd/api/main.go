@@ -80,13 +80,17 @@ func main() {
 
 	finnhubProvider := provider.NewFinnhubProvider(cfg.FinnhubAPIKey, cfg.FinnhubBaseURL, cfg.FinnhubWSURL)
 
-	// Set up market data provider with optional Polygon fallback for historical bars.
-	var dataProvider provider.MarketDataProvider = finnhubProvider
+	// ADR 015: Polygon is primary for historical bars; Finnhub is realtime + fallback.
+	// FallbackProvider routes GetHistoricalBars to Polygon first, then Finnhub.
+	// All other methods (quotes, symbols, streaming) always go to Finnhub.
+	var polygonProvider provider.MarketDataProvider
 	if cfg.PolygonAPIKey != "" {
-		polygonProvider := provider.NewPolygonProvider(cfg.PolygonAPIKey)
-		dataProvider = provider.NewFallbackProvider(finnhubProvider, polygonProvider)
-		slog.Info("polygon.io enabled as fallback for historical bars")
+		polygonProvider = provider.NewPolygonProvider(cfg.PolygonAPIKey)
+		slog.Info("polygon.io enabled as primary provider for historical bars")
+	} else {
+		slog.Warn("POLYGON_API_KEY not set — historical bars will use finnhub only")
 	}
+	dataProvider := provider.NewFallbackProvider(finnhubProvider, polygonProvider)
 
 	marketDataSvc := service.NewMarketDataService(dataProvider)
 

@@ -9,205 +9,210 @@ import (
 	"github.com/huchknows/fintech/backend/internal/model"
 )
 
-// MockMarketDataProvider is a test double for MarketDataProvider.
-type MockMarketDataProvider struct {
-	GetQuoteFunc          func(ctx context.Context, symbol string) (*model.Quote, error)
-	GetHistoricalBarsFunc func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
-	StreamPricesFunc      func(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
-	GetSymbolsFunc        func(ctx context.Context, exchange string) ([]model.Symbol, error)
-	HealthCheckFunc       func(ctx context.Context) error
+// mockProvider is a test double for MarketDataProvider.
+type mockProvider struct {
+	getHistoricalBarsFunc func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
+	getQuoteFunc          func(ctx context.Context, symbol string) (*model.Quote, error)
+	getSymbolsFunc        func(ctx context.Context, exchange string) ([]model.Symbol, error)
+	healthCheckFunc       func(ctx context.Context) error
 }
 
-func (m *MockMarketDataProvider) GetQuote(ctx context.Context, symbol string) (*model.Quote, error) {
-	if m.GetQuoteFunc != nil {
-		return m.GetQuoteFunc(ctx, symbol)
+func (m *mockProvider) GetHistoricalBars(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
+	if m.getHistoricalBarsFunc != nil {
+		return m.getHistoricalBarsFunc(ctx, symbol, tf, start, end)
 	}
 	return nil, errors.New("not implemented")
 }
 
-func (m *MockMarketDataProvider) GetHistoricalBars(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-	if m.GetHistoricalBarsFunc != nil {
-		return m.GetHistoricalBarsFunc(ctx, symbol, tf, start, end)
+func (m *mockProvider) GetQuote(ctx context.Context, symbol string) (*model.Quote, error) {
+	if m.getQuoteFunc != nil {
+		return m.getQuoteFunc(ctx, symbol)
 	}
 	return nil, errors.New("not implemented")
 }
 
-func (m *MockMarketDataProvider) StreamPrices(ctx context.Context, symbols []string, handler func(model.PriceTick)) error {
-	if m.StreamPricesFunc != nil {
-		return m.StreamPricesFunc(ctx, symbols, handler)
+func (m *mockProvider) StreamPrices(ctx context.Context, symbols []string, handler func(model.PriceTick)) error {
+	return errors.New("not implemented")
+}
+
+func (m *mockProvider) GetSymbols(ctx context.Context, exchange string) ([]model.Symbol, error) {
+	if m.getSymbolsFunc != nil {
+		return m.getSymbolsFunc(ctx, exchange)
+	}
+	return nil, errors.New("not implemented")
+}
+
+func (m *mockProvider) HealthCheck(ctx context.Context) error {
+	if m.healthCheckFunc != nil {
+		return m.healthCheckFunc(ctx)
 	}
 	return errors.New("not implemented")
 }
 
-func (m *MockMarketDataProvider) GetSymbols(ctx context.Context, exchange string) ([]model.Symbol, error) {
-	if m.GetSymbolsFunc != nil {
-		return m.GetSymbolsFunc(ctx, exchange)
-	}
-	return nil, errors.New("not implemented")
-}
+// --- GetHistoricalBars routing tests ---
 
-func (m *MockMarketDataProvider) HealthCheck(ctx context.Context) error {
-	if m.HealthCheckFunc != nil {
-		return m.HealthCheckFunc(ctx)
-	}
-	return errors.New("not implemented")
-}
-
-func TestFallbackProvider_GetHistoricalBars_PrimarySucceeds(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_PolygonSucceeds(t *testing.T) {
 	ctx := context.Background()
-	bars := []model.Bar{{Symbol: "AAPL", Close: 150.0}}
+	polygonBars := []model.Bar{{Symbol: "AAPL", Close: 175.0}}
 
-	primary := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			return bars, nil
+	polygon := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			return polygonBars, nil
 		},
 	}
-
-	fallback := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			t.Fatal("fallback should not be called when primary succeeds")
+	finnhub := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			t.Fatal("finnhub should not be called when polygon succeeds")
 			return nil, nil
 		},
 	}
 
-	fb := NewFallbackProvider(primary, fallback)
-	result, err := fb.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
+	fp := NewFallbackProvider(finnhub, polygon)
+	bars, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
 
 	if err != nil {
-		t.Errorf("expected no error, got %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result) != 1 || result[0].Close != 150.0 {
-		t.Errorf("expected bars from primary, got %v", result)
-	}
-}
-
-func TestFallbackProvider_GetHistoricalBars_PrimaryRateLimited(t *testing.T) {
-	ctx := context.Background()
-
-	primary := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			return nil, ErrRateLimited
-		},
-	}
-
-	fallback := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			t.Fatal("fallback should NOT be called when primary is rate limited")
-			return nil, nil
-		},
-	}
-
-	fb := NewFallbackProvider(primary, fallback)
-	_, err := fb.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
-
-	if !errors.Is(err, ErrRateLimited) {
-		t.Errorf("expected ErrRateLimited, got %v", err)
+	if len(bars) != 1 || bars[0].Close != 175.0 {
+		t.Errorf("expected polygon bars, got %v", bars)
 	}
 }
 
-func TestFallbackProvider_GetHistoricalBars_PrimaryFailsFallbackSucceeds(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_PolygonFailsFinnhubSucceeds(t *testing.T) {
 	ctx := context.Background()
-	fallbackBars := []model.Bar{{Symbol: "AAPL", Close: 155.0}}
+	finnhubBars := []model.Bar{{Symbol: "AAPL", Close: 174.0}}
 
-	primary := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
+	polygon := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
 			return nil, ErrProviderUnavailable
 		},
 	}
-
-	fallback := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			return fallbackBars, nil
+	finnhub := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			return finnhubBars, nil
 		},
 	}
 
-	fb := NewFallbackProvider(primary, fallback)
-	result, err := fb.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
+	fp := NewFallbackProvider(finnhub, polygon)
+	bars, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
 
 	if err != nil {
-		t.Errorf("expected no error, got %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result) != 1 || result[0].Close != 155.0 {
-		t.Errorf("expected bars from fallback, got %v", result)
+	if len(bars) != 1 || bars[0].Close != 174.0 {
+		t.Errorf("expected finnhub fallback bars, got %v", bars)
+	}
+}
+
+func TestFallbackProvider_GetHistoricalBars_PolygonRateLimitedFinnhubSucceeds(t *testing.T) {
+	ctx := context.Background()
+	finnhubBars := []model.Bar{{Symbol: "TSLA", Close: 200.0}}
+
+	polygon := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			return nil, ErrRateLimited
+		},
+	}
+	finnhub := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			return finnhubBars, nil
+		},
+	}
+
+	fp := NewFallbackProvider(finnhub, polygon)
+	bars, err := fp.GetHistoricalBars(ctx, "TSLA", model.Timeframe1M, time.Now(), time.Now())
+
+	// Even on rate limit, the fallback (Finnhub) should be tried
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(bars) != 1 || bars[0].Close != 200.0 {
+		t.Errorf("expected finnhub fallback bars, got %v", bars)
 	}
 }
 
 func TestFallbackProvider_GetHistoricalBars_BothFail(t *testing.T) {
 	ctx := context.Background()
 
-	primary := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-			return nil, ErrProviderUnavailable
-		},
-	}
-
-	fallback := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
+	polygon := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
 			return nil, ErrInvalidSymbol
 		},
 	}
-
-	fb := NewFallbackProvider(primary, fallback)
-	_, err := fb.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
-
-	// Should return fallback error
-	if !errors.Is(err, ErrInvalidSymbol) {
-		t.Errorf("expected ErrInvalidSymbol (from fallback), got %v", err)
-	}
-}
-
-func TestFallbackProvider_GetHistoricalBars_NoFallback(t *testing.T) {
-	ctx := context.Background()
-
-	primary := &MockMarketDataProvider{
-		GetHistoricalBarsFunc: func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
+	finnhub := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
 			return nil, ErrProviderUnavailable
 		},
 	}
 
-	fb := NewFallbackProvider(primary, nil)
-	_, err := fb.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
+	fp := NewFallbackProvider(finnhub, polygon)
+	_, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
 
-	// Should return primary error when no fallback
+	// Returns finnhub (fallback) error
 	if !errors.Is(err, ErrProviderUnavailable) {
-		t.Errorf("expected ErrProviderUnavailable (from primary), got %v", err)
+		t.Errorf("expected ErrProviderUnavailable from finnhub fallback, got %v", err)
 	}
 }
 
-func TestFallbackProvider_DelegatesOtherMethods(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_NoPolygon_UsesOnlyFinnhub(t *testing.T) {
+	ctx := context.Background()
+	finnhubBars := []model.Bar{{Symbol: "MSFT", Close: 420.0}}
+
+	finnhub := &mockProvider{
+		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+			return finnhubBars, nil
+		},
+	}
+
+	fp := NewFallbackProvider(finnhub, nil)
+	bars, err := fp.GetHistoricalBars(ctx, "MSFT", model.Timeframe1M, time.Now(), time.Now())
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(bars) != 1 || bars[0].Close != 420.0 {
+		t.Errorf("expected finnhub bars, got %v", bars)
+	}
+}
+
+// --- Non-bars methods always route to Finnhub ---
+
+func TestFallbackProvider_RealtimeMethods_AlwaysRoutedToFinnhub(t *testing.T) {
 	ctx := context.Background()
 
-	primary := &MockMarketDataProvider{
-		GetQuoteFunc: func(ctx context.Context, symbol string) (*model.Quote, error) {
-			return &model.Quote{Symbol: "AAPL"}, nil
+	finnhub := &mockProvider{
+		getQuoteFunc: func(_ context.Context, symbol string) (*model.Quote, error) {
+			return &model.Quote{Symbol: symbol, Price: 150.0}, nil
 		},
-		GetSymbolsFunc: func(ctx context.Context, exchange string) ([]model.Symbol, error) {
+		getSymbolsFunc: func(_ context.Context, _ string) ([]model.Symbol, error) {
 			return []model.Symbol{{Symbol: "AAPL"}}, nil
 		},
-		HealthCheckFunc: func(ctx context.Context) error {
-			return nil
+		healthCheckFunc: func(_ context.Context) error { return nil },
+	}
+	polygon := &mockProvider{
+		getQuoteFunc: func(_ context.Context, _ string) (*model.Quote, error) {
+			t.Fatal("polygon should never be called for GetQuote")
+			return nil, nil
+		},
+		getSymbolsFunc: func(_ context.Context, _ string) ([]model.Symbol, error) {
+			t.Fatal("polygon should never be called for GetSymbols")
+			return nil, nil
 		},
 	}
 
-	fallback := &MockMarketDataProvider{} // Should not be called
+	fp := NewFallbackProvider(finnhub, polygon)
 
-	fb := NewFallbackProvider(primary, fallback)
-
-	// GetQuote should delegate to primary
-	quote, err := fb.GetQuote(ctx, "AAPL")
-	if err != nil || quote.Symbol != "AAPL" {
-		t.Errorf("GetQuote failed: %v", err)
+	quote, err := fp.GetQuote(ctx, "AAPL")
+	if err != nil || quote.Price != 150.0 {
+		t.Errorf("GetQuote: expected finnhub result, got err=%v quote=%v", err, quote)
 	}
 
-	// GetSymbols should delegate to primary
-	symbols, err := fb.GetSymbols(ctx, "US")
-	if err != nil || len(symbols) == 0 {
-		t.Errorf("GetSymbols failed: %v", err)
+	syms, err := fp.GetSymbols(ctx, "US")
+	if err != nil || len(syms) == 0 {
+		t.Errorf("GetSymbols: expected finnhub result, got err=%v", err)
 	}
 
-	// HealthCheck should delegate to primary
-	err = fb.HealthCheck(ctx)
-	if err != nil {
-		t.Errorf("HealthCheck failed: %v", err)
+	if err := fp.HealthCheck(ctx); err != nil {
+		t.Errorf("HealthCheck: unexpected error: %v", err)
 	}
 }
