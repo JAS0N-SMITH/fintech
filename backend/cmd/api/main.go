@@ -79,7 +79,16 @@ func main() {
 	importSvc := service.NewImportService(transactionSvc, portfolioSvc, logger)
 
 	finnhubProvider := provider.NewFinnhubProvider(cfg.FinnhubAPIKey, cfg.FinnhubBaseURL, cfg.FinnhubWSURL)
-	marketDataSvc := service.NewMarketDataService(finnhubProvider)
+
+	// Set up market data provider with optional Polygon fallback for historical bars.
+	var dataProvider provider.MarketDataProvider = finnhubProvider
+	if cfg.PolygonAPIKey != "" {
+		polygonProvider := provider.NewPolygonProvider(cfg.PolygonAPIKey)
+		dataProvider = provider.NewFallbackProvider(finnhubProvider, polygonProvider)
+		slog.Info("polygon.io enabled as fallback for historical bars")
+	}
+
+	marketDataSvc := service.NewMarketDataService(dataProvider)
 
 	portfolioHandler := handler.NewPortfolioHandler(portfolioSvc)
 	transactionHandler := handler.NewTransactionHandler(transactionSvc)
@@ -92,6 +101,15 @@ func main() {
 
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
+
+	// Restrict which proxy IPs are trusted for X-Forwarded-For resolution.
+	// nil = trust no proxies (use direct connection IP), which is correct for
+	// local dev and any deployment without a reverse proxy in front.
+	// Set TRUSTED_PROXIES=127.0.0.1 (or your load balancer CIDR) in production.
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		slog.Error("failed to set trusted proxies", "error", err)
+		os.Exit(1)
+	}
 
 	// Global middleware stack (order matters — see security.md):
 	// RequestID → Logger → Recovery → CORS → RateLimit(IP)

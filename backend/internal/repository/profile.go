@@ -30,7 +30,8 @@ func NewProfileRepository(db *pgxpool.Pool) ProfileRepository {
 // GetByID retrieves a user profile by ID, including their preferences.
 func (r *profileRepo) GetByID(ctx context.Context, id string) (*model.UserProfile, error) {
 	q := `
-		SELECT id, display_name, role, preferences, created_at, updated_at
+		SELECT id, COALESCE(display_name, ''), role, preferences,
+		       created_at::text, updated_at::text
 		FROM public.profiles
 		WHERE id = $1
 	`

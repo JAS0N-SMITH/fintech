@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +33,12 @@ type cachedBars struct {
 	expiresAt time.Time
 }
 
+// cachedSymbols holds the exchange symbol list with its expiry time.
+type cachedSymbols struct {
+	symbols   []model.Symbol
+	expiresAt time.Time
+}
+
 // MarketDataService fetches and caches market data from a MarketDataProvider.
 // All methods are safe for concurrent use.
 type MarketDataService interface {
@@ -40,13 +47,19 @@ type MarketDataService interface {
 
 	// GetHistoricalBars returns OHLCV candle data for the given symbol and range.
 	GetHistoricalBars(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
+
+	// SearchSymbols returns a list of supported symbols matching the query.
+	// query filters by case-insensitive prefix match on symbol and substring match on description.
+	// limit caps the number of results returned (1-50); results are truncated to this count.
+	SearchSymbols(ctx context.Context, query string, limit int) ([]model.Symbol, error)
 }
 
 type marketDataService struct {
-	provider   provider.MarketDataProvider
-	quoteCache map[string]cachedQuote
-	barCache   map[string]cachedBars
-	mu         sync.RWMutex
+	provider    provider.MarketDataProvider
+	quoteCache  map[string]cachedQuote
+	barCache    map[string]cachedBars
+	symbolCache *cachedSymbols
+	mu          sync.RWMutex
 }
 
 // NewMarketDataService creates a MarketDataService backed by the given provider.
@@ -113,6 +126,74 @@ func (s *marketDataService) GetHistoricalBars(ctx context.Context, symbol string
 	s.mu.Unlock()
 
 	return bars, nil
+}
+
+// SearchSymbols returns a filtered list of supported symbols for the US exchange.
+// Filters by case-insensitive prefix match on symbol and substring match on description.
+// Results are capped at limit (1-50); if limit is invalid, defaults to 20.
+func (s *marketDataService) SearchSymbols(ctx context.Context, query string, limit int) ([]model.Symbol, error) {
+	// Normalize limit
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+
+	// Fast path: read lock, check cache.
+	s.mu.RLock()
+	if s.symbolCache != nil && time.Now().Before(s.symbolCache.expiresAt) {
+		symbols := s.symbolCache.symbols
+		s.mu.RUnlock()
+		return filterSymbols(symbols, query, limit), nil
+	}
+	s.mu.RUnlock()
+
+	// Cache miss or expired: fetch from provider.
+	symbols, err := s.provider.GetSymbols(ctx, "US")
+	if err != nil {
+		return nil, mapProviderError(err, "")
+	}
+
+	// Write lock: store in cache.
+	s.mu.Lock()
+	s.symbolCache = &cachedSymbols{
+		symbols:   symbols,
+		expiresAt: time.Now().Add(time.Duration(config.SymbolsCacheTTL) * time.Second),
+	}
+	s.mu.Unlock()
+
+	return filterSymbols(symbols, query, limit), nil
+}
+
+// filterSymbols returns symbols matching the query (case-insensitive prefix on symbol,
+// substring on description), limited to the given count.
+func filterSymbols(symbols []model.Symbol, query string, limit int) []model.Symbol {
+	if query == "" {
+		// No query: return first N symbols
+		if len(symbols) > limit {
+			return symbols[:limit]
+		}
+		return symbols
+	}
+
+	query = strings.ToUpper(query)
+	var results []model.Symbol
+	for _, sym := range symbols {
+		// Case-insensitive prefix match on symbol
+		if strings.HasPrefix(strings.ToUpper(sym.Symbol), query) {
+			results = append(results, sym)
+			if len(results) >= limit {
+				break
+			}
+			continue
+		}
+		// Case-insensitive substring match on description
+		if strings.Contains(strings.ToUpper(sym.Description), query) {
+			results = append(results, sym)
+			if len(results) >= limit {
+				break
+			}
+		}
+	}
+	return results
 }
 
 // mapProviderError translates provider sentinel errors into AppErrors with

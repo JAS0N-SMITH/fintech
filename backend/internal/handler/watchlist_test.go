@@ -19,15 +19,15 @@ import (
 // --- mock watchlist service ---
 
 type mockWatchlistService struct {
-	listFn         func(ctx context.Context, userID string) ([]*model.Watchlist, error)
-	createFn       func(ctx context.Context, userID string, in model.CreateWatchlistInput) (*model.Watchlist, error)
-	getByIDFn      func(ctx context.Context, userID, id string) (*model.Watchlist, error)
-	updateFn       func(ctx context.Context, userID, id string, in model.UpdateWatchlistInput) (*model.Watchlist, error)
-	deleteFn       func(ctx context.Context, userID, id string) error
-	listItemsFn    func(ctx context.Context, userID, id string) ([]*model.WatchlistItem, error)
-	addItemFn      func(ctx context.Context, userID, id string, in model.CreateWatchlistItemInput) (*model.WatchlistItem, error)
-	updateItemFn   func(ctx context.Context, userID, id, symbol string, in model.UpdateWatchlistItemInput) (*model.WatchlistItem, error)
-	removeItemFn   func(ctx context.Context, userID, id, symbol string) error
+	listFn       func(ctx context.Context, userID string) ([]*model.Watchlist, error)
+	createFn     func(ctx context.Context, userID string, in model.CreateWatchlistInput) (*model.Watchlist, error)
+	getByIDFn    func(ctx context.Context, userID, id string) (*model.Watchlist, error)
+	updateFn     func(ctx context.Context, userID, id string, in model.UpdateWatchlistInput) (*model.Watchlist, error)
+	deleteFn     func(ctx context.Context, userID, id string) error
+	listItemsFn  func(ctx context.Context, userID, id string) ([]*model.WatchlistItem, error)
+	addItemFn    func(ctx context.Context, userID, id string, in model.CreateWatchlistItemInput) (*model.WatchlistItem, error)
+	updateItemFn func(ctx context.Context, userID, id, symbol string, in model.UpdateWatchlistItemInput) (*model.WatchlistItem, error)
+	removeItemFn func(ctx context.Context, userID, id, symbol string) error
 }
 
 func (m *mockWatchlistService) List(ctx context.Context, userID string) ([]*model.Watchlist, error) {

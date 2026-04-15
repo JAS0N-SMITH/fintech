@@ -37,6 +37,16 @@ type Bar struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// Symbol represents a listed stock on an exchange, as returned by Finnhub.
+type Symbol struct {
+	Symbol        string `json:"symbol"`
+	Description   string `json:"description"`
+	DisplaySymbol string `json:"display_symbol"`
+	Type          string `json:"type"`
+	MIC           string `json:"mic"`
+	Currency      string `json:"currency"`
+}
+
 // Timeframe represents the candle resolution for historical bar data.
 type Timeframe string
 

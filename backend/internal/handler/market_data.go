@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ func (h *MarketDataHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/quotes/:symbol", h.GetQuote)
 	rg.GET("/quotes", h.GetQuotesBatch)
 	rg.GET("/bars/:symbol", h.GetBars)
+	rg.GET("/symbols", h.GetSymbols)
 }
 
 // GetQuote godoc
@@ -189,4 +191,47 @@ func (h *MarketDataHandler) GetBars(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, bars)
+}
+
+// GetSymbols godoc
+// @Summary     Search symbols
+// @Description Returns a list of supported stock symbols matching the query.
+// @Tags        market-data
+// @Produce     json
+// @Param       q     query string false "Symbol search query (prefix match on symbol, substring on description)"
+// @Param       limit query int    false "Maximum number of results (1-50, default 20)"
+// @Success     200   {array}  model.Symbol
+// @Failure     401   {object} Problem
+// @Failure     422   {object} Problem
+// @Router      /symbols [get]
+func (h *MarketDataHandler) GetSymbols(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	limitStr := c.DefaultQuery("limit", "20")
+
+	limit := 20
+	if l, err := strconv.Atoi(limitStr); err == nil {
+		limit = l
+	}
+
+	// Validate limit (service will cap it, but validate here for early feedback)
+	if limit < 1 || limit > 50 {
+		RespondError(c, &model.AppError{
+			Code:       model.ErrValidation,
+			Message:    "limit must be between 1 and 50",
+			HTTPStatus: http.StatusUnprocessableEntity,
+		})
+		return
+	}
+
+	symbols, err := h.svc.SearchSymbols(c.Request.Context(), q, limit)
+	if err != nil {
+		RespondError(c, err)
+		return
+	}
+
+	// Return empty array instead of nil for consistency
+	if symbols == nil {
+		symbols = []model.Symbol{}
+	}
+	c.JSON(http.StatusOK, symbols)
 }

@@ -13,7 +13,7 @@ import (
 // --- mock profile repository ---
 
 type mockProfileRepo struct {
-	getByIDFn         func(ctx context.Context, id string) (*model.UserProfile, error)
+	getByIDFn          func(ctx context.Context, id string) (*model.UserProfile, error)
 	updatePreferenceFn func(ctx context.Context, id string, preferences json.RawMessage) error
 }
 
@@ -37,12 +37,12 @@ var _ repository.ProfileRepository = (*mockProfileRepo)(nil)
 
 func TestProfileService_GetByID(t *testing.T) {
 	tests := []struct {
-		name      string
-		userID    string
-		repoRtn   *model.UserProfile
-		repoErr   error
-		wantErr   bool
-		wantID    string
+		name    string
+		userID  string
+		repoRtn *model.UserProfile
+		repoErr error
+		wantErr bool
+		wantID  string
 	}{
 		{
 			name:    "returns profile from repo",
@@ -67,7 +67,7 @@ func TestProfileService_GetByID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &mockProfileRepo{
-				getByIDFn: func(_ context.Context, id string) (*model.UserProfile, error) {
+				getByIDFn: func(_ context.Context, _ string) (*model.UserProfile, error) {
 					return tt.repoRtn, tt.repoErr
 				},
 			}
@@ -87,11 +87,11 @@ func TestProfileService_GetByID(t *testing.T) {
 
 func TestProfileService_UpdatePreferences(t *testing.T) {
 	tests := []struct {
-		name      string
-		userID    string
-		prefs     json.RawMessage
-		repoErr   error
-		wantErr   bool
+		name    string
+		userID  string
+		prefs   json.RawMessage
+		repoErr error
+		wantErr bool
 	}{
 		{
 			name:    "updates preferences successfully",

@@ -18,7 +18,7 @@ import (
 // --- mock profile service ---
 
 type mockProfileService struct {
-	getByIDFn         func(ctx context.Context, id string) (*model.UserProfile, error)
+	getByIDFn          func(ctx context.Context, id string) (*model.UserProfile, error)
 	updatePreferenceFn func(ctx context.Context, id string, preferences json.RawMessage) error
 }
 

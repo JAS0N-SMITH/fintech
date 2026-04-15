@@ -20,6 +20,7 @@ import (
 type mockMarketDataService struct {
 	getQuoteFn          func(ctx context.Context, symbol string) (*model.Quote, error)
 	getHistoricalBarsFn func(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error)
+	searchSymbolsFn     func(ctx context.Context, query string, limit int) ([]model.Symbol, error)
 }
 
 func (m *mockMarketDataService) GetQuote(ctx context.Context, symbol string) (*model.Quote, error) {
@@ -34,6 +35,13 @@ func (m *mockMarketDataService) GetHistoricalBars(ctx context.Context, symbol st
 		return m.getHistoricalBarsFn(ctx, symbol, tf, start, end)
 	}
 	return []model.Bar{}, nil
+}
+
+func (m *mockMarketDataService) SearchSymbols(ctx context.Context, query string, limit int) ([]model.Symbol, error) {
+	if m.searchSymbolsFn != nil {
+		return m.searchSymbolsFn(ctx, query, limit)
+	}
+	return []model.Symbol{}, nil
 }
 
 func marketDataRouter(svc *mockMarketDataService) *gin.Engine {

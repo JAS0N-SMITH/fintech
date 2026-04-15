@@ -111,6 +111,17 @@ func (p *FinnhubProvider) GetQuote(ctx context.Context, symbol string) (*model.Q
 
 // --- REST: GetHistoricalBars ---
 
+// finnhubSymbolResponse maps a single stock symbol from the /stock/symbol endpoint.
+type finnhubSymbolResponse struct {
+	Currency      string `json:"currency"`
+	Description   string `json:"description"`
+	DisplaySymbol string `json:"displaySymbol"`
+	FIGI          string `json:"figi"`
+	MIC           string `json:"mic"`
+	Symbol        string `json:"symbol"`
+	Type          string `json:"type"`
+}
+
 // finnhubResolution maps app Timeframe values to Finnhub resolution strings.
 var finnhubResolution = map[model.Timeframe]string{
 	model.Timeframe1D:  "5",  // 5-minute candles for intraday
@@ -273,6 +284,55 @@ func (p *FinnhubProvider) StreamPrices(ctx context.Context, symbols []string, ha
 	case <-done:
 		return fmt.Errorf("%w: connection closed unexpectedly", ErrProviderUnavailable)
 	}
+}
+
+// GetSymbols fetches the list of supported stock symbols for the given exchange from Finnhub.
+func (p *FinnhubProvider) GetSymbols(ctx context.Context, exchange string) ([]model.Symbol, error) {
+	endpoint := fmt.Sprintf("%s/stock/symbol?exchange=%s&token=%s",
+		p.baseURL, url.QueryEscape(exchange), p.apiKey)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, err)
+	}
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrProviderUnavailable, err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// handled below
+	case http.StatusTooManyRequests:
+		return nil, ErrRateLimited
+	case http.StatusForbidden:
+		// Finnhub returns 403 for invalid API keys or unauthorized exchanges
+		return nil, ErrInvalidSymbol
+	default:
+		return nil, fmt.Errorf("%w: HTTP %d", ErrProviderUnavailable, resp.StatusCode)
+	}
+
+	var raw []finnhubSymbolResponse
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("%w: decode symbols: %s", ErrProviderUnavailable, err)
+	}
+
+	symbols := make([]model.Symbol, len(raw))
+	for i, r := range raw {
+		symbols[i] = model.Symbol{
+			Symbol:        r.Symbol,
+			Description:   r.Description,
+			DisplaySymbol: r.DisplaySymbol,
+			Type:          r.Type,
+			MIC:           r.MIC,
+			Currency:      r.Currency,
+		}
+	}
+	return symbols, nil
 }
 
 // HealthCheck verifies that Finnhub API is accessible by making a cached test request.

@@ -46,6 +46,10 @@ type MarketDataProvider interface {
 	// Implementations must call handler from a single goroutine (no concurrent calls).
 	StreamPrices(ctx context.Context, symbols []string, handler func(model.PriceTick)) error
 
+	// GetSymbols returns the list of supported stock symbols for the given exchange.
+	// exchange is a Finnhub exchange code, e.g. "US".
+	GetSymbols(ctx context.Context, exchange string) ([]model.Symbol, error)
+
 	// HealthCheck verifies that the provider is operational.
 	// Uses cached status with a short TTL to avoid exhausting rate limits.
 	HealthCheck(ctx context.Context) error
