@@ -1,6 +1,9 @@
 -- Watchlist Seed Script
 -- Creates 3 themed watchlists with 19 items total
 --
+-- NOTE: Uses only symbols verified to be accessible on Finnhub free tier.
+-- SCHD (dividend ETF) has been replaced with MCD (Common Stock).
+--
 -- Usage:
 --   psql "$DATABASE_URL" -f backend/testdata/seed_watchlists.sql
 --   OR paste contents into Supabase SQL editor
@@ -33,7 +36,7 @@ VALUES
   ('a1b2c3d4-0001-4000-8000-000000000002', 'KO',   58.00, 'Coca-Cola - Dividend King, 60+ years of consecutive raises', now(), now()),
   ('a1b2c3d4-0001-4000-8000-000000000002', 'PG',  155.00, 'Procter & Gamble - Dividend King, defensive consumer staples', now(), now()),
   ('a1b2c3d4-0001-4000-8000-000000000002', 'JNJ',  145.00, 'Johnson & Johnson - Dividend King, healthcare stability', now(), now()),
-  ('a1b2c3d4-0001-4000-8000-000000000002', 'SCHD',  25.00, 'Schwab Dividend ETF - diversified dividend growth', now(), now()),
+  ('a1b2c3d4-0001-4000-8000-000000000002', 'MCD',  295.00, 'McDonald''s - Dividend growth story, asset-light model', now(), now()),
   ('a1b2c3d4-0001-4000-8000-000000000002', 'T',    18.00, 'AT&T - high yield ~6%, watching debt paydown progress', now(), now())
 ON CONFLICT DO NOTHING;
 

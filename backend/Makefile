@@ -1,4 +1,4 @@
-.PHONY: run dev test test-unit test-integration lint vet fmt vuln semgrep gosec
+.PHONY: run dev test test-unit test-integration lint vet fmt vuln semgrep gosec seed
 
 run:
 	go run cmd/api/main.go
@@ -33,6 +33,9 @@ semgrep:
 gosec:
 	gosec ./...
 
+seed:
+	go run cmd/seed/main.go
+
 help:
 	@echo "Available commands:"
 	@echo "  make run                - Run the API server once"
@@ -46,3 +49,4 @@ help:
 	@echo "  make vuln               - Check for known vulnerabilities (govulncheck)"
 	@echo "  make semgrep            - Run semgrep static analysis (OWASP rules)"
 	@echo "  make gosec              - Run gosec security scanner"
+	@echo "  make seed               - Reseed test data with verified Finnhub symbols"

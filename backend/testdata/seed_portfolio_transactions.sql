@@ -1,6 +1,9 @@
 -- Portfolio Seed Script: Historical Transactions
 -- This script populates a portfolio with realistic buy/sell/dividend transactions
--- spanning 18 months (Oct 2024 – Apr 2026) across 8 Finnhub-supported tickers.
+-- spanning 18 months (Oct 2024 – Apr 2026) across 8 Finnhub-supported Common Stock tickers.
+--
+-- NOTE: Uses only symbols verified to be accessible on Finnhub free tier.
+-- SPY and VTI (ETFs) have been replaced with TSLA and META (Common Stock).
 --
 -- Usage:
 --   psql "$DATABASE_URL" -f backend/testdata/seed_portfolio_transactions.sql
@@ -92,33 +95,28 @@ VALUES
   ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'JPM', '2026-03-05', 4.0, 220.75, NULL, 883.00, 'Q1 2026 DCA', now(), now())
 ON CONFLICT DO NOTHING;
 
--- Vanguard Total Market ETF (VTI) - $240-270 range in Oct 2024, $320+ by Apr 2026
+-- Meta Platforms (META) - $560-740 range Oct 2024–Apr 2026 (replaces VTI ETF)
 INSERT INTO public.transactions (portfolio_id, transaction_type, symbol, transaction_date, quantity, price_per_share, dividend_per_share, total_amount, notes, created_at, updated_at)
 VALUES
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'VTI', '2024-10-10', 15.0, 255.50, NULL, 3832.50, 'Core holding - total market', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'VTI', '2024-12-31', 15.0, NULL, 0.82, 12.30, 'Annual dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'VTI', '2025-03-12', 10.0, 268.75, NULL, 2687.50, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'VTI', '2025-06-30', 25.0, NULL, 0.82, 20.50, 'Dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'VTI', '2025-06-15', 8.0, 275.25, NULL, 2202.00, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'sell', 'VTI', '2025-09-10', 5.0, 288.50, NULL, 1442.50, 'Rebalance', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'VTI', '2025-12-31', 38.0, NULL, 0.82, 31.16, 'Annual dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'VTI', '2026-01-15', 10.0, 305.75, NULL, 3057.50, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'VTI', '2026-03-20', 8.0, 318.50, NULL, 2548.00, 'Q1 2026 DCA', now(), now())
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2024-10-10', 7.0, 580.25, NULL, 4061.75, 'Initial position - AI and ads', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2024-12-15', 5.0, 610.50, NULL, 3052.50, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2025-02-20', 5.0, 645.75, NULL, 3228.75, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2025-04-15', 4.0, 668.50, NULL, 2674.00, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'sell', 'META', '2025-06-30', 3.0, 695.25, NULL, 2085.75, 'Take profits', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2025-08-20', 5.0, 710.50, NULL, 3552.50, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2025-11-10', 4.0, 728.75, NULL, 2915.00, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'META', '2026-02-15', 4.0, 738.50, NULL, 2954.00, 'Q1 2026 DCA', now(), now())
 ON CONFLICT DO NOTHING;
 
--- S&P 500 ETF (SPY) - $575-620 range in Oct 2024, $700+ by Apr 2026
+-- Tesla (TSLA) - $220-360 range Oct 2024–Apr 2026 (replaces SPY ETF)
 INSERT INTO public.transactions (portfolio_id, transaction_type, symbol, transaction_date, quantity, price_per_share, dividend_per_share, total_amount, notes, created_at, updated_at)
 VALUES
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2024-11-08', 6.0, 595.75, NULL, 3574.50, 'Core holding - S&P 500', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'SPY', '2024-12-20', 6.0, NULL, 1.52, 9.12, 'Q4 dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2025-02-14', 4.0, 612.50, NULL, 2450.00, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'SPY', '2025-03-28', 10.0, NULL, 1.52, 15.20, 'Q1 dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2025-05-20', 5.0, 628.25, NULL, 3141.25, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'SPY', '2025-06-20', 15.0, NULL, 1.52, 22.80, 'Q2 dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'sell', 'SPY', '2025-08-15', 3.0, 650.50, NULL, 1951.50, 'Rebalance', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'SPY', '2025-09-26', 12.0, NULL, 1.52, 18.24, 'Q3 dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2025-11-25', 4.0, 672.75, NULL, 2691.00, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'dividend', 'SPY', '2025-12-19', 16.0, NULL, 1.52, 24.32, 'Q4 dividend', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2026-02-24', 4.0, 695.25, NULL, 2781.00, 'DCA add', now(), now()),
-  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'SPY', '2026-04-10', 3.0, 715.50, NULL, 2146.50, 'Q1 2026 DCA', now(), now())
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2024-11-08', 8.0, 240.50, NULL, 1924.00, 'Initial position - growth play', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2024-12-20', 6.0, 258.75, NULL, 1552.50, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2025-02-14', 5.0, 275.25, NULL, 1376.25, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'sell', 'TSLA', '2025-04-28', 4.0, 298.50, NULL, 1194.00, 'Take profits on rally', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2025-06-20', 5.0, 310.75, NULL, 1553.75, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2025-09-15', 6.0, 330.25, NULL, 1981.50, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2025-11-25', 5.0, 345.50, NULL, 1727.50, 'DCA add', now(), now()),
+  ('1b0c532b-38ba-4ffe-aa2d-c302200d5cf5', 'buy', 'TSLA', '2026-02-24', 5.0, 358.75, NULL, 1793.75, 'Q1 2026 DCA', now(), now())
 ON CONFLICT DO NOTHING;

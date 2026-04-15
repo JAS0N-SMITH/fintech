@@ -130,3 +130,4 @@ When creating a new ADR, also append its number and title to this index.
 - 012: Admin dashboard architecture — fire-and-forget audit, three-layer RBAC, atomic counters
 - 013: Connection state & error resilience — WebSocket reconnection, last-updated timestamps, HTTP retry logic
 - 014: Makefile + air hot-reload — developer experience for Go backend matching Angular `ng serve`
+- 015: Multi-provider strategy with Polygon.io fallback for historical data
