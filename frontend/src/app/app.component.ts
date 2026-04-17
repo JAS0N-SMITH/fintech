@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Toast } from 'primeng/toast';
+import { IdleTimeoutService } from './core/idle-timeout.service';
 
 @Component({
   selector: 'app-root',
@@ -12,4 +13,7 @@ import { Toast } from 'primeng/toast';
     <router-outlet />
   `,
 })
-export class App {}
+export class App {
+  // Eagerly instantiate the idle timeout service to start monitoring user activity.
+  private readonly _idleTimeout = inject(IdleTimeoutService);
+}

@@ -4,7 +4,6 @@ import {
   effect,
   inject,
   signal,
-  DestroyRef,
   ChangeDetectionStrategy,
   OnInit,
 } from '@angular/core';
@@ -56,8 +55,6 @@ export class TickerDetailComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly portfolioService = inject(PortfolioService);
   private readonly transactionService = inject(TransactionService);
-  private readonly destroyRef = inject(DestroyRef);
-
   constructor() {
     // Effect that runs whenever selectedTimeframe changes.
     // Fetches fresh bar data for the new timeframe.
@@ -74,11 +71,9 @@ export class TickerDetailComponent implements OnInit {
   readonly symbol = signal<string>('');
 
   // Remote data state
-  readonly quote = signal<Quote | null>(null);
   readonly bars = signal<Bar[]>([]);
   readonly barsLoading = signal(false);
   readonly barsUnavailable = signal(false);
-  readonly quoteLoading = signal(true);
 
   // Time range selector
   readonly selectedTimeframe = signal<Timeframe>('1M');
@@ -92,6 +87,11 @@ export class TickerDetailComponent implements OnInit {
     this.tickerStateService.tickers()[this.symbol()] ?? null
   );
   readonly livePrice = computed(() => this.tickerState()?.currentPrice ?? null);
+
+  // Quote derived from tickerState — populated by TickerStateService.subscribe() snapshot fetch
+  readonly quote = computed(() => this.tickerState()?.quote ?? null);
+  // Loading until tickerState is populated (symbol set but no snapshot yet)
+  readonly quoteLoading = computed(() => this.symbol() !== '' && this.tickerState() === null);
 
   // Filter transactions to this symbol
   readonly symbolTransactions = computed(() =>
@@ -129,39 +129,13 @@ export class TickerDetailComponent implements OnInit {
       // Reset bars state for new symbol
       this.barsUnavailable.set(false);
 
-      // Load quote snapshot
-      this.loadQuote(sym);
-
-      // Load initial bars for 1M timeframe
-      this.loadBars(sym, '1M');
-
       // Load all transactions across all portfolios
       this.loadAllTransactions();
     }
 
-    // Cleanup on destroy
-    this.destroyRef.onDestroy(() => {
-      const sym = this.symbol();
-      if (sym) {
-        this.tickerStateService.unsubscribe([sym]);
-      }
-    });
-  }
-
-  /**
-   * Load quote snapshot for the symbol.
-   */
-  private loadQuote(symbol: string): void {
-    this.quoteLoading.set(true);
-    this.marketDataService.getQuote(symbol).subscribe({
-      next: (quote) => {
-        this.quote.set(quote);
-        this.quoteLoading.set(false);
-      },
-      error: () => {
-        this.quoteLoading.set(false);
-      },
-    });
+    // Ticker state is intentionally kept alive in TickerStateService after
+    // navigation — WebSocket ticks keep it fresh and other pages may need it.
+    // Call TickerStateService.destroy() on logout to clean up the full session.
   }
 
   /**

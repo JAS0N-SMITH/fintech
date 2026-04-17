@@ -2,11 +2,9 @@ import {
   Component,
   ChangeDetectionStrategy,
   OnInit,
-  OnDestroy,
   inject,
   signal,
   computed,
-  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -16,7 +14,6 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ChartModule } from 'primeng/chart';
 import { AllocationChartComponent } from '../../components/allocation-chart/allocation-chart.component';
-import { PortfolioPerformanceChartComponent } from '../../components/portfolio-performance-chart/portfolio-performance-chart.component';
 import { PortfolioService } from '../../../portfolio/services/portfolio.service';
 import { TransactionService, deriveHoldings, enrichHoldingsWithPrices } from '../../../portfolio/services/transaction.service';
 import { TickerStateService } from '../../../../core/ticker-state.service';
@@ -41,13 +38,12 @@ import type { Portfolio } from '../../../portfolio/models/portfolio.model';
     TagModule,
     ChartModule,
     AllocationChartComponent,
-    PortfolioPerformanceChartComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit {
   private readonly portfolioService: PortfolioService = inject(PortfolioService);
   private readonly transactionService: TransactionService = inject(TransactionService);
   private readonly tickerStateService: TickerStateService = inject(TickerStateService);
@@ -156,10 +152,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAllTransactions();
-  }
-
-  ngOnDestroy(): void {
-    this.transactionService.clear();
   }
 
   /** Exposing parseFloat to the template. */

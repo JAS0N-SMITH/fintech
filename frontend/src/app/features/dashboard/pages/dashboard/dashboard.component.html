@@ -90,7 +90,7 @@
 
   <!-- Charts Section (deferred) -->
   @if (!isLoading()) {
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6">
       <!-- Allocation Chart -->
       <p-card>
         <ng-template pTemplate="header">
@@ -102,14 +102,6 @@
         </ng-template>
         <app-allocation-chart [holdings]="enrichedHoldings()" />
       </p-card>
-
-      <!-- Performance Chart -->
-      <div class="rounded-lg border border-surface-200 dark:border-surface-700
-                  bg-white dark:bg-surface-900 shadow overflow-hidden">
-        <app-portfolio-performance-chart
-          [transactions]="allTransactions()"
-        />
-      </div>
     </div>
   }
 

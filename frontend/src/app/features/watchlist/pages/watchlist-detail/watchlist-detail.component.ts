@@ -5,7 +5,6 @@ import {
   inject,
   OnInit,
   signal,
-  DestroyRef,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -51,8 +50,6 @@ export class WatchlistDetailComponent implements OnInit {
   readonly tickerStateService = inject(TickerStateService);
   private readonly messages = inject(MessageService);
   private readonly confirmation = inject(ConfirmationService);
-  private readonly destroyRef = inject(DestroyRef);
-
   /** Watchlist ID from route params. */
   private readonly watchlistId = signal<string>('');
 
@@ -97,10 +94,6 @@ export class WatchlistDetailComponent implements OnInit {
       this.router.navigate(['/watchlists']);
     }
 
-    // Cleanup on destroy
-    this.destroyRef.onDestroy(() => {
-      this.watchlistService.cleanup();
-    });
   }
 
   protected openAddItemDialog(): void {

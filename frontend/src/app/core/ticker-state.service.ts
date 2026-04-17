@@ -72,10 +72,17 @@ export class TickerStateService implements OnDestroy {
    * Fetches Quote snapshots immediately, then connects (or reuses) the WebSocket.
    */
   subscribe(symbols: string[]): void {
+    const currentTickers = this._tickers();
+    const needSnapshot: string[] = [];
     for (const sym of symbols) {
       this.trackedSymbols.add(sym);
+      if (!currentTickers[sym]) {
+        needSnapshot.push(sym);
+      }
     }
-    this.fetchSnapshots(symbols);
+    if (needSnapshot.length > 0) {
+      this.fetchSnapshots(needSnapshot);
+    }
     this.ensureWebSocket();
     this.sendSubscribe(symbols);
   }

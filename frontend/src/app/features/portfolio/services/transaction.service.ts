@@ -141,7 +141,7 @@ export class TransactionService {
     return enrichHoldingsWithPrices(base, prices);
   });
 
-  /** Loads all transactions for a portfolio, resets the signal, and subscribes to live prices. */
+  /** Loads all transactions for a portfolio and resets the signal. */
   loadByPortfolio(portfolioId: string): Observable<Transaction[]> {
     this._loading.set(true);
     return this.http.get<Transaction[]>(portfolioBase(portfolioId)).pipe(
@@ -149,11 +149,6 @@ export class TransactionService {
         next: (data) => {
           this._transactions.set(data);
           this._loading.set(false);
-          // Subscribe to live prices for all symbols in the portfolio.
-          const symbols = [...new Set(data.map((tx) => tx.symbol))];
-          if (symbols.length > 0) {
-            this.tickerState.subscribe(symbols);
-          }
         },
         error: () => this._loading.set(false),
       }),
@@ -181,12 +176,8 @@ export class TransactionService {
       );
   }
 
-  /** Clears the transaction list and stops live price subscriptions. */
+  /** Clears the transaction list. */
   clear(): void {
-    const symbols = [...new Set(this._transactions().map((tx) => tx.symbol))];
-    if (symbols.length > 0) {
-      this.tickerState.unsubscribe(symbols);
-    }
     this._transactions.set([]);
   }
 }

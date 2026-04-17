@@ -91,10 +91,6 @@ export class WatchlistService {
         if (this._selectedWatchlist()?.id === id) {
           this._selectedWatchlist.set(null);
         }
-        // Unsubscribe from WebSocket for all items in this watchlist
-        this._items().forEach((item) => {
-          this.tickerStateService.unsubscribe([item.symbol]);
-        });
         this._items.set([]);
       })
     );
@@ -153,19 +149,8 @@ export class WatchlistService {
     return this.http.delete<void>(`${this.baseUrl}/${watchlistId}/items/${symbol}`).pipe(
       tap(() => {
         this._items.update((items) => items.filter((item) => item.symbol !== symbol));
-        // Unsubscribe from price updates for this symbol
-        this.tickerStateService.unsubscribe([symbol]);
       })
     );
   }
 
-  /**
-   * Clean up subscriptions (called on component destroy).
-   */
-  cleanup(): void {
-    // Unsubscribe from all symbols in the current watchlist
-    this._items().forEach((item) => {
-      this.tickerStateService.unsubscribe([item.symbol]);
-    });
-  }
 }

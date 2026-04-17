@@ -133,6 +133,12 @@ export class PortfolioDetailComponent implements OnInit, OnDestroy {
     });
 
     this.transactionService.loadByPortfolio(this.portfolioId).subscribe({
+      next: (transactions) => {
+        const symbols = [...new Set(transactions.map((tx) => tx.symbol))];
+        if (symbols.length > 0) {
+          this.tickerState.subscribe(symbols);
+        }
+      },
       error: () =>
         this.messages.add({
           severity: 'error',
@@ -217,8 +223,13 @@ export class PortfolioDetailComponent implements OnInit, OnDestroy {
   }
 
   protected onImported(result: any): void {
-    // Reload transactions after successful import
     this.transactionService.loadByPortfolio(this.portfolioId).subscribe({
+      next: (transactions) => {
+        const symbols = [...new Set(transactions.map((tx) => tx.symbol))];
+        if (symbols.length > 0) {
+          this.tickerState.subscribe(symbols);
+        }
+      },
       error: () =>
         this.messages.add({
           severity: 'error',
