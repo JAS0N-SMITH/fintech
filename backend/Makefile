@@ -1,4 +1,4 @@
-.PHONY: run dev test test-unit test-integration lint vet fmt vuln semgrep gosec seed
+.PHONY: run dev test test-unit test-integration lint vet fmt vuln semgrep gosec seed kill-port
 
 run:
 	go run cmd/api/main.go
@@ -36,6 +36,9 @@ gosec:
 seed:
 	go run cmd/seed/main.go
 
+kill-port:
+	@lsof -ti :8080 | xargs kill -9 2>/dev/null && echo "Killed processes on :8080" || echo "No process found on :8080"
+
 help:
 	@echo "Available commands:"
 	@echo "  make run                - Run the API server once"
@@ -49,4 +52,5 @@ help:
 	@echo "  make vuln               - Check for known vulnerabilities (govulncheck)"
 	@echo "  make semgrep            - Run semgrep static analysis (OWASP rules)"
 	@echo "  make gosec              - Run gosec security scanner"
-	@echo "  make seed               - Reseed test data with verified Finnhub symbols"
+	@echo "  make seed               - Reseed test data with verified Finnhub symbols
+	@echo "  make kill-port          - Kill any process running on port 8080""
