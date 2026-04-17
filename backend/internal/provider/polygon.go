@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/huchknows/fintech/backend/internal/model"
 )
 
@@ -18,6 +20,7 @@ import (
 type PolygonProvider struct {
 	apiKey     string
 	httpClient *http.Client
+	limiter    *rate.Limiter
 }
 
 // NewPolygonProvider creates a PolygonProvider with the given API key.
@@ -27,6 +30,7 @@ func NewPolygonProvider(apiKey string) *PolygonProvider {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		limiter: rate.NewLimiter(rate.Every(12*time.Second), 1),
 	}
 }
 
@@ -98,6 +102,13 @@ func (p *PolygonProvider) GetHistoricalBars(ctx context.Context, symbol string, 
 		toStr,
 		p.apiKey,
 	)
+
+	// Throttle to Polygon free-tier limit: 5 requests/minute.
+	if p.limiter != nil {
+		if err := p.limiter.Wait(ctx); err != nil {
+			return nil, fmt.Errorf("%w: rate limiter wait: %s", ErrProviderUnavailable, err)
+		}
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {

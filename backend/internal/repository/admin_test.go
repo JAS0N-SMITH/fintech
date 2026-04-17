@@ -27,11 +27,11 @@ func TestAdminRepository_ListUsers(t *testing.T) {
 	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Charlie", "user", u3)
 
 	tests := []struct {
-		name       string
-		page       int
-		pageSize   int
-		wantLen    int
-		wantTotal  int
+		name      string
+		page      int
+		pageSize  int
+		wantLen   int
+		wantTotal int
 	}{
 		{
 			name:      "returns paginated users",
@@ -95,11 +95,11 @@ func TestAdminRepository_UpdateUserRole(t *testing.T) {
 	db.Exec(ctx, "UPDATE public.profiles SET display_name = $1, role = $2 WHERE id = $3", "Test User", "user", userID)
 
 	tests := []struct {
-		name      string
-		userID    string
-		newRole   string
-		wantErr   bool
-		wantRole  string
+		name     string
+		userID   string
+		newRole  string
+		wantErr  bool
+		wantRole string
 	}{
 		{
 			name:     "updates user role to admin",
@@ -304,10 +304,10 @@ func TestAdminRepository_AuditLogDateFilter(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		from      time.Time
-		to        time.Time
-		wantLen   int
+		name    string
+		from    time.Time
+		to      time.Time
+		wantLen int
 	}{
 		{
 			name:    "filters by date range including now",
@@ -349,4 +349,3 @@ func TestAdminRepository_AuditLogDateFilter(t *testing.T) {
 		})
 	}
 }
-

@@ -10,8 +10,7 @@ import (
 
 // FallbackProvider routes market data to specialized providers per ADR 015:
 //   - Real-time data (GetQuote, StreamPrices, GetSymbols, HealthCheck): always routes to realtime (Finnhub).
-//   - Historical bars (GetHistoricalBars): routes to historical (Polygon) first;
-//     falls back to realtime (Finnhub) if historical is nil or returns any error.
+//   - Historical bars (GetHistoricalBars): routes exclusively to historical (Polygon); returns empty if Polygon is nil or has no data.
 type FallbackProvider struct {
 	realtime   MarketDataProvider // Finnhub: quotes, symbols, streaming
 	historical MarketDataProvider // Polygon: historical bars (optional; may be nil)
@@ -31,25 +30,20 @@ func (p *FallbackProvider) GetQuote(ctx context.Context, symbol string) (*model.
 	return p.realtime.GetQuote(ctx, symbol)
 }
 
-// GetHistoricalBars tries the historical provider (Polygon) first.
-// If it is nil or returns any error, falls back to the realtime provider (Finnhub).
-// Logs which provider was used at debug level for observability.
+// GetHistoricalBars routes exclusively to the historical provider (Polygon).
+// Returns empty bars if Polygon is not configured or returns an error.
 func (p *FallbackProvider) GetHistoricalBars(ctx context.Context, symbol string, tf model.Timeframe, start, end time.Time) ([]model.Bar, error) {
-	if p.historical != nil {
-		bars, err := p.historical.GetHistoricalBars(ctx, symbol, tf, start, end)
-		if err == nil {
-			slog.Debug("historical bars served by polygon", "symbol", symbol, "timeframe", tf)
-			return bars, nil
-		}
-		slog.Warn("polygon historical bars failed, falling back to finnhub", "symbol", symbol, "error", err)
+	if p.historical == nil {
+		slog.Warn("no historical provider configured, returning empty bars", "symbol", symbol)
+		return []model.Bar{}, nil
 	}
-
-	// Fall back to realtime provider (Finnhub)
-	bars, err := p.realtime.GetHistoricalBars(ctx, symbol, tf, start, end)
-	if err == nil {
-		slog.Debug("historical bars served by finnhub (fallback)", "symbol", symbol, "timeframe", tf)
+	bars, err := p.historical.GetHistoricalBars(ctx, symbol, tf, start, end)
+	if err != nil {
+		slog.Error("polygon historical bars failed", "symbol", symbol, "error", err)
+		return nil, err
 	}
-	return bars, err
+	slog.Debug("historical bars served by polygon", "symbol", symbol, "timeframe", tf)
+	return bars, nil
 }
 
 // StreamPrices delegates to the realtime provider.

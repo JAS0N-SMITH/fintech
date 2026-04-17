@@ -31,7 +31,7 @@ func (m *mockProvider) GetQuote(ctx context.Context, symbol string) (*model.Quot
 	return nil, errors.New("not implemented")
 }
 
-func (m *mockProvider) StreamPrices(ctx context.Context, symbols []string, handler func(model.PriceTick)) error {
+func (m *mockProvider) StreamPrices(_ context.Context, _ []string, _ func(model.PriceTick)) error {
 	return errors.New("not implemented")
 }
 
@@ -78,9 +78,8 @@ func TestFallbackProvider_GetHistoricalBars_PolygonSucceeds(t *testing.T) {
 	}
 }
 
-func TestFallbackProvider_GetHistoricalBars_PolygonFailsFinnhubSucceeds(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_PolygonFails_ErrorPropagates(t *testing.T) {
 	ctx := context.Background()
-	finnhubBars := []model.Bar{{Symbol: "AAPL", Close: 174.0}}
 
 	polygon := &mockProvider{
 		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
@@ -89,24 +88,21 @@ func TestFallbackProvider_GetHistoricalBars_PolygonFailsFinnhubSucceeds(t *testi
 	}
 	finnhub := &mockProvider{
 		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
-			return finnhubBars, nil
+			t.Fatal("finnhub should not be called for historical bars")
+			return nil, nil
 		},
 	}
 
 	fp := NewFallbackProvider(finnhub, polygon)
-	bars, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
+	_, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(bars) != 1 || bars[0].Close != 174.0 {
-		t.Errorf("expected finnhub fallback bars, got %v", bars)
+	if !errors.Is(err, ErrProviderUnavailable) {
+		t.Errorf("expected ErrProviderUnavailable from polygon, got %v", err)
 	}
 }
 
-func TestFallbackProvider_GetHistoricalBars_PolygonRateLimitedFinnhubSucceeds(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_PolygonRateLimited_ErrorPropagates(t *testing.T) {
 	ctx := context.Background()
-	finnhubBars := []model.Bar{{Symbol: "TSLA", Close: 200.0}}
 
 	polygon := &mockProvider{
 		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
@@ -115,52 +111,26 @@ func TestFallbackProvider_GetHistoricalBars_PolygonRateLimitedFinnhubSucceeds(t 
 	}
 	finnhub := &mockProvider{
 		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
-			return finnhubBars, nil
+			t.Fatal("finnhub should not be called for historical bars")
+			return nil, nil
 		},
 	}
 
 	fp := NewFallbackProvider(finnhub, polygon)
-	bars, err := fp.GetHistoricalBars(ctx, "TSLA", model.Timeframe1M, time.Now(), time.Now())
+	_, err := fp.GetHistoricalBars(ctx, "TSLA", model.Timeframe1M, time.Now(), time.Now())
 
-	// Even on rate limit, the fallback (Finnhub) should be tried
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(bars) != 1 || bars[0].Close != 200.0 {
-		t.Errorf("expected finnhub fallback bars, got %v", bars)
+	if !errors.Is(err, ErrRateLimited) {
+		t.Errorf("expected ErrRateLimited from polygon, got %v", err)
 	}
 }
 
-func TestFallbackProvider_GetHistoricalBars_BothFail(t *testing.T) {
+func TestFallbackProvider_GetHistoricalBars_NoPolygon_ReturnsEmpty(t *testing.T) {
 	ctx := context.Background()
-
-	polygon := &mockProvider{
-		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
-			return nil, ErrInvalidSymbol
-		},
-	}
-	finnhub := &mockProvider{
-		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
-			return nil, ErrProviderUnavailable
-		},
-	}
-
-	fp := NewFallbackProvider(finnhub, polygon)
-	_, err := fp.GetHistoricalBars(ctx, "AAPL", model.Timeframe1M, time.Now(), time.Now())
-
-	// Returns finnhub (fallback) error
-	if !errors.Is(err, ErrProviderUnavailable) {
-		t.Errorf("expected ErrProviderUnavailable from finnhub fallback, got %v", err)
-	}
-}
-
-func TestFallbackProvider_GetHistoricalBars_NoPolygon_UsesOnlyFinnhub(t *testing.T) {
-	ctx := context.Background()
-	finnhubBars := []model.Bar{{Symbol: "MSFT", Close: 420.0}}
 
 	finnhub := &mockProvider{
 		getHistoricalBarsFunc: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
-			return finnhubBars, nil
+			t.Fatal("finnhub should not be called for historical bars")
+			return nil, nil
 		},
 	}
 
@@ -170,8 +140,8 @@ func TestFallbackProvider_GetHistoricalBars_NoPolygon_UsesOnlyFinnhub(t *testing
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(bars) != 1 || bars[0].Close != 420.0 {
-		t.Errorf("expected finnhub bars, got %v", bars)
+	if len(bars) != 0 {
+		t.Errorf("expected empty bars when no polygon configured, got %v", bars)
 	}
 }
 

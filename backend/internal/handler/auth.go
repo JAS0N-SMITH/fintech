@@ -20,7 +20,7 @@ import (
 const (
 	refreshTokenCookie = "rt"
 	cookiePath         = "/api/v1/auth"
-	cookieMaxAge       = 60 * 60 * 24 * 30 // 30 days
+	cookieMaxAge       = 60 * 60 * 24 * 7 // 7 days — matches Supabase refresh token lifetime
 )
 
 // sessionRequest is the body Angular POSTs after a successful Supabase login.

@@ -37,7 +37,7 @@ func TestPolygonProvider_GetHistoricalBars_Success(t *testing.T) {
 			"count": 1,
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
@@ -65,19 +65,19 @@ func TestPolygonProvider_GetHistoricalBars_Success(t *testing.T) {
 	_ = err
 }
 
-func TestPolygonProvider_TimeframeMapping(t *testing.T) {
+func TestPolygonProvider_TimeframeMapping(_ *testing.T) {
 	// This test verifies that timeframe mapping is correct
 	testCases := []struct {
-		timeframe  model.Timeframe
-		wantSpan   string
-		wantMult   int
+		timeframe model.Timeframe
+		wantSpan  string
+		wantMult  int
 	}{
-		{model.Timeframe1D, "minute", 5},    // 5-minute candles
-		{model.Timeframe1W, "day", 1},       // Daily
-		{model.Timeframe1M, "day", 1},       // Daily
-		{model.Timeframe3M, "day", 1},       // Daily
-		{model.Timeframe1Y, "week", 1},      // Weekly
-		{model.TimeframeAll, "month", 1},    // Monthly
+		{model.Timeframe1D, "minute", 5}, // 5-minute candles
+		{model.Timeframe1W, "day", 1},    // Daily
+		{model.Timeframe1M, "day", 1},    // Daily
+		{model.Timeframe3M, "day", 1},    // Daily
+		{model.Timeframe1Y, "week", 1},   // Weekly
+		{model.TimeframeAll, "month", 1}, // Monthly
 	}
 
 	for _, tc := range testCases {
@@ -99,7 +99,7 @@ func TestPolygonProvider_NotImplementedMethods(t *testing.T) {
 	})
 
 	t.Run("StreamPrices", func(t *testing.T) {
-		err := provider.StreamPrices(ctx, []string{"AAPL"}, func(tick model.PriceTick) {})
+		err := provider.StreamPrices(ctx, []string{"AAPL"}, func(_ model.PriceTick) {})
 		if err == nil {
 			t.Error("expected error, got nil")
 		}
@@ -122,10 +122,10 @@ func TestPolygonProvider_NotImplementedMethods(t *testing.T) {
 
 func TestPolygonProvider_ErrorHandling(t *testing.T) {
 	testCases := []struct {
-		name           string
-		statusCode     int
-		expectedError  error
-		responseBody   string
+		name          string
+		statusCode    int
+		expectedError error
+		responseBody  string
 	}{
 		{
 			name:          "not found",
@@ -148,10 +148,10 @@ func TestPolygonProvider_ErrorHandling(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Run(tc.name, func(_ *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tc.statusCode)
-				io.WriteString(w, tc.responseBody)
+				_, _ = io.WriteString(w, tc.responseBody)
 			}))
 			defer server.Close()
 

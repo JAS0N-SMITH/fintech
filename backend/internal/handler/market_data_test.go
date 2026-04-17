@@ -250,4 +250,25 @@ func TestMarketDataHandler_GetBars(t *testing.T) {
 			t.Errorf("status = %d, want 422", w.Code)
 		}
 	})
+
+	// Test all valid timeframes
+	validTimeframes := []string{"1D", "1W", "1M", "3M", "1Y", "ALL"}
+	for _, tf := range validTimeframes {
+		tf := tf
+		t.Run("valid timeframe "+tf+" returns 200", func(t *testing.T) {
+			t.Parallel()
+			svc := &mockMarketDataService{
+				getHistoricalBarsFn: func(_ context.Context, _ string, _ model.Timeframe, _, _ time.Time) ([]model.Bar, error) {
+					return []model.Bar{{Symbol: "AAPL", Close: 150.0}}, nil
+				},
+			}
+			r := marketDataRouter(svc)
+			req := httptest.NewRequest(http.MethodGet, "/bars/AAPL?timeframe="+tf, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			if w.Code != http.StatusOK {
+				t.Errorf("status = %d, want 200 (body: %s)", w.Code, w.Body.String())
+			}
+		})
+	}
 }

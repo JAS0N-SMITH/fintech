@@ -120,13 +120,16 @@ func (s *marketDataService) GetHistoricalBars(ctx context.Context, symbol string
 		return nil, mapProviderError(err, symbol)
 	}
 
-	// Write lock: store in cache.
-	s.mu.Lock()
-	s.barCache[key] = cachedBars{
-		bars:      bars,
-		expiresAt: time.Now().Add(historicalTTL),
+	// Only cache non-empty results — empty means the provider had no data, and
+	// a subsequent request (e.g., after the market closes) may succeed.
+	if len(bars) > 0 {
+		s.mu.Lock()
+		s.barCache[key] = cachedBars{
+			bars:      bars,
+			expiresAt: time.Now().Add(historicalTTL),
+		}
+		s.mu.Unlock()
 	}
-	s.mu.Unlock()
 
 	return bars, nil
 }
