@@ -7,15 +7,17 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AutoComplete } from 'primeng/autocomplete';
 import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
+import { Textarea } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { WatchlistService } from '../../services/watchlist.service';
 import { MarketDataService } from '../../../../core/market-data.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { StockSymbol } from '../../../portfolio/models/market-data.model';
+import type { StockSymbol, Quote } from '../../../portfolio/models/market-data.model';
 
 /**
  * TickerSearchComponent provides an autocomplete search for adding tickers to a watchlist.
@@ -26,63 +28,9 @@ import type { StockSymbol } from '../../../portfolio/models/market-data.model';
 @Component({
   selector: 'app-ticker-search',
   standalone: true,
-  imports: [FormsModule, AutoComplete, Button, InputNumber],
+  imports: [CommonModule, FormsModule, AutoComplete, Button, InputNumber, Textarea, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="space-y-4">
-      <div>
-        <label for="ticker-input" class="block text-sm font-medium mb-2">
-          Search by ticker symbol
-        </label>
-        <p-autoComplete
-          id="ticker-input"
-          [(ngModel)]="searchInput"
-          (completeMethod)="onSearch($event)"
-          [suggestions]="suggestions()"
-          optionLabel="symbol"
-          optionValue="symbol"
-          (onSelect)="selectedSymbol.set($event.value)"
-          placeholder="e.g., AAPL, GOOGL"
-          [minLength]="1"
-          [showEmptyMessage]="true"
-          emptyMessage="No symbols found"
-          class="w-full"
-          field="symbol"
-        >
-          <ng-template pTemplate="item" let-item>
-            <span class="font-semibold">{{ item.symbol }}</span>
-            <span class="text-sm text-surface-500 ml-2">{{ item.description }}</span>
-          </ng-template>
-        </p-autoComplete>
-      </div>
-      <div>
-        <label for="target-price" class="block text-sm font-medium mb-2">
-          Target price (optional)
-        </label>
-        <p-inputNumber
-          id="target-price"
-          [(ngModel)]="targetPrice"
-          mode="currency"
-          currency="USD"
-          [minFractionDigits]="2"
-          [maxFractionDigits]="2"
-          placeholder="$0.00"
-          class="w-full"
-        />
-      </div>
-    </div>
-    <ng-template pTemplate="footer">
-      <div class="flex gap-2 justify-end">
-        <p-button label="Cancel" severity="secondary" (onClick)="cancel()" />
-        <p-button
-          label="Add"
-          [disabled]="!selectedSymbol() || isAdding()"
-          [loading]="isAdding()"
-          (onClick)="addItem()"
-        />
-      </div>
-    </ng-template>
-  `,
+  templateUrl: './ticker-search.component.html',
 })
 export class TickerSearchComponent {
   private readonly watchlistService = inject(WatchlistService);
@@ -97,9 +45,12 @@ export class TickerSearchComponent {
   protected readonly searchInput = signal('');
   protected readonly selectedSymbol = signal<string>('');
   protected readonly targetPrice = signal<number | null>(null);
+  protected readonly notes = signal('');
   protected readonly suggestions = signal<StockSymbol[]>([]);
   protected readonly isSearching = signal(false);
   protected readonly isAdding = signal(false);
+  protected readonly symbolQuote = signal<Quote | null>(null);
+  protected readonly selectedDescription = signal<string>('');
 
   /**
    * Handle search input changes by querying the market data API.
@@ -137,8 +88,19 @@ export class TickerSearchComponent {
     const symbol = this.selectedSymbol().toUpperCase().trim();
     if (!symbol) return;
 
+    // Check for duplicates before API call
+    const alreadyAdded = this.watchlistService.items().some(i => i.symbol === symbol);
+    if (alreadyAdded) {
+      this.messages.add({
+        severity: 'warn',
+        summary: 'Already on watchlist',
+        detail: `${symbol} is already in this watchlist.`,
+      });
+      return;
+    }
+
     // Validate symbol format (alphanumeric, dots, hyphens)
-    if (!/^[A-Z0-9.\-]{1,20}$/.test(symbol)) {
+    if (!/^[A-Z0-9.-]{1,20}$/.test(symbol)) {
       this.messages.add({
         severity: 'error',
         summary: 'Invalid symbol',
@@ -152,10 +114,12 @@ export class TickerSearchComponent {
       .addItem(this.watchlistId(), {
         symbol,
         target_price: this.targetPrice() ?? undefined,
+        notes: this.notes() || undefined,
       })
       .subscribe({
         next: () => {
           this.isAdding.set(false);
+          this.resetForm();
           this.itemAdded.emit(symbol);
         },
         error: () => {
@@ -167,6 +131,51 @@ export class TickerSearchComponent {
           });
         },
       });
+  }
+
+  protected onSymbolSelected(symbol: string): void {
+    this.selectedSymbol.set(symbol);
+    // Fetch quote for price preview
+    this.marketDataService
+      .getQuote(symbol)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (quote) => {
+          this.symbolQuote.set(quote);
+          // Also set description from the selected item
+          const selected = this.suggestions().find(s => s.symbol === symbol);
+          if (selected) {
+            this.selectedDescription.set(selected.description);
+          }
+        },
+        error: () => {
+          // Silent fail - price preview is non-critical
+        },
+      });
+  }
+
+  protected onSearchInputChange(): void {
+    // Clear selection when user types a new query
+    this.selectedSymbol.set('');
+    this.symbolQuote.set(null);
+    this.selectedDescription.set('');
+  }
+
+  protected onClear(): void {
+    this.selectedSymbol.set('');
+    this.symbolQuote.set(null);
+    this.selectedDescription.set('');
+    this.suggestions.set([]);
+  }
+
+  private resetForm(): void {
+    this.searchInput.set('');
+    this.selectedSymbol.set('');
+    this.targetPrice.set(null);
+    this.notes.set('');
+    this.symbolQuote.set(null);
+    this.selectedDescription.set('');
+    this.suggestions.set([]);
   }
 
   protected cancel(): void {

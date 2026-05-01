@@ -1,0 +1,97 @@
+<div class="space-y-4">
+  <div>
+    <label for="ticker-input" class="block text-sm font-medium mb-2">
+      Search by ticker symbol
+    </label>
+    <div class="relative">
+      <p-autoComplete
+        id="ticker-input"
+        [(ngModel)]="searchInput"
+        (completeMethod)="onSearch($event)"
+        (ngModelChange)="onSearchInputChange()"
+        (onClear)="onClear()"
+        [suggestions]="suggestions()"
+        optionLabel="symbol"
+        (onSelect)="onSymbolSelected($event.value.symbol)"
+        placeholder="e.g., AAPL, GOOGL"
+        [minLength]="1"
+        [showEmptyMessage]="true"
+        emptyMessage="No symbols found"
+        class="w-full"
+        field="symbol"
+      >
+      <ng-template pTemplate="item" let-item>
+        <span class="font-semibold">{{ item.symbol }}</span>
+        <span class="text-sm text-surface-500 ml-2">{{ item.description }}</span>
+      </ng-template>
+      </p-autoComplete>
+      @if (isSearching()) {
+        <div class="absolute right-3 top-10">
+          <i class="pi pi-spinner pi-spin text-primary"></i>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (symbolQuote(); as quote) {
+    <div class="p-3 bg-surface-50 dark:bg-surface-900 rounded border border-surface-200 dark:border-surface-700">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="font-semibold text-sm">{{ selectedSymbol() }}</p>
+          <p class="text-xs text-surface-500">{{ selectedDescription() }}</p>
+        </div>
+        <div class="text-right">
+          <p class="font-semibold">${{ quote.price | number: '1.2-2' }}</p>
+          @if (quote.previous_close) {
+            <p
+              [ngClass]="quote.price >= quote.previous_close ? 'text-green-600' : 'text-red-600'"
+              class="text-xs"
+            >
+              {{ (((quote.price - quote.previous_close) / quote.previous_close) * 100 | number: '1.2-2') }}%
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <div>
+    <label for="target-price" class="block text-sm font-medium mb-2">
+      Target price (optional)
+    </label>
+    <p-inputNumber
+      id="target-price"
+      [(ngModel)]="targetPrice"
+      mode="currency"
+      currency="USD"
+      [minFractionDigits]="2"
+      [maxFractionDigits]="2"
+      placeholder="$0.00"
+      class="w-full"
+    />
+  </div>
+
+  <div>
+    <label for="notes" class="block text-sm font-medium mb-2">
+      Notes (optional)
+    </label>
+    <textarea
+      id="notes"
+      pTextarea
+      [(ngModel)]="notes"
+      placeholder="Add any notes about this ticker..."
+      rows="3"
+      class="w-full"
+    ></textarea>
+  </div>
+
+  <div class="flex gap-2 justify-end pt-2 border-t border-surface-200 dark:border-surface-700">
+    <p-button label="Cancel" severity="secondary" (onClick)="cancel()" />
+    <p-button
+      label="Add"
+      [disabled]="!selectedSymbol() || isAdding()"
+      [loading]="isAdding()"
+      (onClick)="addItem()"
+    />
+  </div>
+</div>
