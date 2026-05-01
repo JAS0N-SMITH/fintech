@@ -47,6 +47,13 @@ type Config struct {
 	FinnhubWSURL   string
 	// Polygon.io market data (optional fallback for historical bars)
 	PolygonAPIKey string
+	// Redaction settings for redactlog
+	RedactEnabled           bool
+	RedactRequestBody       bool
+	RedactResponseBody      bool
+	RedactSensitiveQueryParams []string
+	RedactHeaderDenylist    []string
+	RedactPaths             []string
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -65,6 +72,12 @@ func Load() (*Config, error) {
 	viper.SetDefault("AUTH_RATE_LIMIT", 60)
 	viper.SetDefault("FINNHUB_BASE_URL", "https://finnhub.io/api/v1")
 	viper.SetDefault("FINNHUB_WS_URL", "wss://ws.finnhub.io")
+	viper.SetDefault("REDACT_ENABLED", true)
+	viper.SetDefault("REDACT_REQUEST_BODY", false)
+	viper.SetDefault("REDACT_RESPONSE_BODY", false)
+	viper.SetDefault("REDACT_SENSITIVE_QUERY_PARAMS", "access_token,refresh_token,api_key,apikey,token")
+	viper.SetDefault("REDACT_HEADER_DENYLIST", "")
+	viper.SetDefault("REDACT_PATHS", "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		slog.Warn("no .env file found, using environment variables", "error", err)
@@ -101,6 +114,48 @@ func Load() (*Config, error) {
 		FinnhubBaseURL:  viper.GetString("FINNHUB_BASE_URL"),
 		FinnhubWSURL:    viper.GetString("FINNHUB_WS_URL"),
 		PolygonAPIKey:   viper.GetString("POLYGON_API_KEY"),
+		RedactEnabled:   viper.GetBool("REDACT_ENABLED"),
+		RedactRequestBody: viper.GetBool("REDACT_REQUEST_BODY"),
+		RedactResponseBody: viper.GetBool("REDACT_RESPONSE_BODY"),
+		RedactSensitiveQueryParams: func() []string {
+			raw := viper.GetString("REDACT_SENSITIVE_QUERY_PARAMS")
+			if raw == "" {
+				return nil
+			}
+			out := []string{}
+			for _, p := range strings.Split(raw, ",") {
+				if t := strings.TrimSpace(p); t != "" {
+					out = append(out, t)
+				}
+			}
+			return out
+		}(),
+		RedactHeaderDenylist: func() []string {
+			raw := viper.GetString("REDACT_HEADER_DENYLIST")
+			if raw == "" {
+				return nil
+			}
+			out := []string{}
+			for _, p := range strings.Split(raw, ",") {
+				if t := strings.TrimSpace(p); t != "" {
+					out = append(out, t)
+				}
+			}
+			return out
+		}(),
+		RedactPaths: func() []string {
+			raw := viper.GetString("REDACT_PATHS")
+			if raw == "" {
+				return nil
+			}
+			out := []string{}
+			for _, p := range strings.Split(raw, ",") {
+				if t := strings.TrimSpace(p); t != "" {
+					out = append(out, t)
+				}
+			}
+			return out
+		}(),
 	}
 
 	if cfg.DatabaseURL == "" {

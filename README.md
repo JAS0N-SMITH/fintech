@@ -151,6 +151,34 @@ cd backend
 goose -dir migrations postgres "$DATABASE_URL" up
 ```
 
+### CLI Flags: `migrate` and `seed`
+
+The backend CLI tools `migrate` and `seed` accept flags to control `redactlog` behavior for CLI output. These flags can also be provided via environment variables in the backend config.
+
+Common flags:
+
+- `--redact_enabled` (default: `true`) : enable redactlog for CLI output
+- `--redact_request_body` (default: `false`) : capture and redact request bodies
+- `--redact_response_body` (default: `false`) : capture and redact response bodies
+- `--redact_query_params` (CSV) : comma-separated sensitive query params (e.g. `access_token,api_key`)
+- `--redact_header_denylist` (CSV) : comma-separated headers to denylist from logs
+- `--redact_paths` (CSV) : comma-separated Pino-style paths to redact
+
+Example: run the seed command without redaction:
+
+```bash
+cd backend
+go run ./cmd/seed --redact_enabled=false
+```
+
+Example: enable request body capture for debugging (staging only):
+
+```bash
+cd backend
+go run ./cmd/seed --redact_request_body=true
+```
+
+
 ---
 
 ## API Endpoints

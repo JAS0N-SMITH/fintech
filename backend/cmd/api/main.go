@@ -25,6 +25,9 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+
+	redactlog "github.com/JAS0N-SMITH/redactlog"
+	redactgin "github.com/JAS0N-SMITH/redactlog/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -44,6 +47,8 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -105,6 +110,38 @@ func main() {
 
 	// Build router with explicit middleware — never use gin.Default().
 	r := gin.New()
+
+	// Configure redactlog (PCI preset) to wrap HTTP logs and redact common secrets.
+	// Build this after loading configuration so env flags can control behavior.
+	if cfg.RedactEnabled {
+		opts := []redactlog.Option{
+			redactlog.WithLogger(slog.Default()),
+		}
+		if cfg.RedactRequestBody {
+			opts = append(opts, redactlog.WithRequestBody(true))
+		}
+		if cfg.RedactResponseBody {
+			opts = append(opts, redactlog.WithResponseBody(true))
+		}
+		if len(cfg.RedactSensitiveQueryParams) > 0 {
+			opts = append(opts, redactlog.WithSensitiveQueryParams(cfg.RedactSensitiveQueryParams...))
+		}
+		if len(cfg.RedactHeaderDenylist) > 0 {
+			opts = append(opts, redactlog.WithHeaderDenylist(cfg.RedactHeaderDenylist...))
+		}
+		if len(cfg.RedactPaths) > 0 {
+			opts = append(opts, redactlog.WithRedactPaths(cfg.RedactPaths...))
+		}
+
+		redactHandler, err := redactlog.NewPCI(opts...)
+		if err != nil {
+			slog.Warn("redactlog initialization failed, continuing without HTTP redaction", "error", err)
+		} else if redactHandler != nil {
+			r.Use(redactgin.New(redactHandler))
+		}
+	} else {
+		slog.Info("redactlog disabled by configuration")
+	}
 
 	// Restrict which proxy IPs are trusted for X-Forwarded-For resolution.
 	// nil = trust no proxies (use direct connection IP), which is correct for

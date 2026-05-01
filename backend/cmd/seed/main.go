@@ -10,10 +10,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
+
+	redactlog "github.com/JAS0N-SMITH/redactlog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/viper"
@@ -52,10 +56,52 @@ var (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	// CLI flags for redactlog behaviour
+	redactEnabled := flag.Bool("redact_enabled", true, "enable redactlog for CLI output")
+	redactRequestBody := flag.Bool("redact_request_body", false, "capture and redact request body")
+	redactResponseBody := flag.Bool("redact_response_body", false, "capture and redact response body")
+	redactQueryParams := flag.String("redact_query_params", "", "comma-separated sensitive query params")
+	redactHeaderDenylist := flag.String("redact_header_denylist", "", "comma-separated headers to denylist")
+	redactPaths := flag.String("redact_paths", "", "comma-separated redact paths")
+	flag.Parse()
+
+	baseHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
+	})
+	tmpLogger := slog.New(baseHandler)
+
+	var logger *slog.Logger
+
+	// Wrap CLI logger with redactlog PCI handler if enabled
+	if *redactEnabled {
+		opts := []redactlog.Option{redactlog.WithLogger(tmpLogger)}
+		if *redactRequestBody {
+			opts = append(opts, redactlog.WithRequestBody(true))
+		}
+		if *redactResponseBody {
+			opts = append(opts, redactlog.WithResponseBody(true))
+		}
+		if *redactQueryParams != "" {
+			opts = append(opts, redactlog.WithSensitiveQueryParams(strings.Split(*redactQueryParams, ",")...))
+		}
+		if *redactHeaderDenylist != "" {
+			opts = append(opts, redactlog.WithHeaderDenylist(strings.Split(*redactHeaderDenylist, ",")...))
+		}
+		if *redactPaths != "" {
+			opts = append(opts, redactlog.WithRedactPaths(strings.Split(*redactPaths, ",")...))
+		}
+		redactHandler, err := redactlog.NewPCI(opts...)
+		if err != nil || redactHandler == nil {
+			logger = tmpLogger
+			slog.SetDefault(logger)
+		} else {
+			logger = slog.New(redactHandler)
+			slog.SetDefault(logger)
+		}
+	} else {
+		logger = tmpLogger
+		slog.SetDefault(logger)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

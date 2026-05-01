@@ -44,6 +44,8 @@ go install github.com/air-verse/air@latest
 
 Then use `make dev` for auto-reloading server (like `ng serve` for frontend).
 
+See `backend/README.md` for backend-specific CLI flags and instructions (migrate/seed redactlog options).
+
 ## Project Structure
 
 ```
